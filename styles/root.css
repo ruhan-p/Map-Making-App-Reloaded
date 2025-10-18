@@ -1,0 +1,47 @@
+/* Shared theme tokens for the extension UI */
+:root {
+  /* Base theme values */
+  --ext-card-fg-val: 255, 255, 255;
+  --ext-card-bg-val: 33, 34, 37;
+  --ext-card-bg-alpha: 1;
+  --ext-el-bg: rgba(7, 7, 8, 0.8);
+  --ext-highlight: 22, 236, 146;
+
+  /* Derived colors */
+  --ext-card-fg: rgb(var(--ext-card-fg-val));
+  --ext-card-bg: rgba(var(--ext-card-bg-val), var(--ext-card-bg-alpha, 1));
+  --ext-notify-info-bg: var(--ext-card-bg-val);
+  --ext-hl1: rgba(var(--ext-card-fg-val), 0.15);
+  --ext-hl2: rgba(var(--ext-card-fg-val), 0.5);
+  --ext-hl3: rgba(var(--ext-card-fg-val), 0.75);
+
+  /* Status colors */
+  --ext-notify-success-bg: 17, 156, 75;
+  --ext-notify-warning-bg: 191, 144, 2;
+  --ext-notify-error-bg: 154, 21, 12;
+  --constructive: rgb(17, 160, 76) !important;
+  --destructive: rgb(196, 24, 12) !important;
+  --deconstructive: rgb(232, 176, 6) !important;
+
+  /* Surfaces */
+  --ext-blur: 4px;
+  --ext-blur2: 2px;
+  --ext-radius: 12px;
+  --ext-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  --ext-border: rgba(255, 255, 255, 0.14);
+  --ext-mode-indicator-add: #16ec92;
+  --ext-mode-indicator-move: #2196f3;
+  --ext-red: rgba(241, 24, 8, 0.5);
+  --ext-red2: rgba(241, 24, 8, 0.2);
+
+  /* Layering */
+  --z-map: 0;
+  --z-overlay: 1;
+  --z-panel: 20;
+  --z-lppanels: 30;
+  --z-header: 40;
+  --z-edit: 50;
+  --z-popper: 99;
+  --z-modal: 999;
+  --z-notification: 9999;
+}

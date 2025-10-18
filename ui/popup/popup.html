@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-t">
+  <title>Extension Settings</title>
+  <link rel="stylesheet" href="../../styles/root.css">
+  <link rel="stylesheet" href="../../styles/popup.css">
+</head>
+<body>
+  <main class="popup">
+    <section class="popup-header">
+        <h1 class="popup__title">Extension Settings</h1>
+        <h2 class="popup__subtitle">Map Making App Reloaded</h2>
+        <a class="popup-links" href="https://buymeacoffee.com/ccosine" target="_blank" rel="noopener noreferrer">If you like my work, support me! &#x1FA77;</a>
+        <button type="button" id="apply-button" class="primary-button" disabled>Apply changes</button>
+    </section>
+    
+    <section class="popup-section" aria-labelledby="section-custom-title">
+      <header class="popup-section__header">
+        <h2 id="section-custom-title">Color Theme</h2>
+      </header>
+      <div id="custom-panel" class="custom-panel" aria-live="polite">
+        <div id="custom-tabs-container" class="custom-tabs">
+          <div class="custom-tabs__nav" role="tablist" aria-label="Custom Color Options"></div>
+          <div class="custom-tabs__content"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="popup-section" aria-labelledby="section-presets-title">
+      <div class="theme-grid" id="preset-grid" role="radiogroup" aria-label="Theme Presets"></div>
+    </section>
+
+    <section class="popup-section" aria-labelledby="section-custom-themes-title">
+      <header class="popup-section__header">
+        <h2 id="section-custom-themes-title">Custom Themes</h2>
+        <div class="save-theme-container">
+          <button type="button" id="save-custom-theme-button" class="primary-button" disabled>Save</button>
+          <form id="save-theme-form" class="save-theme-form" novalidate>
+            <input type="text" id="new-theme-name" class="save-theme-form__input" value="My Custom Theme" placeholder="Theme name" required>
+            <button type="submit" class="save-theme-form__button">Add</button>
+          </form>
+        </div>
+      </header>
+      <div class="theme-grid" id="custom-themes-grid" role="group" aria-label="Saved Custom Themes">
+        <p class="popup__subtitle" data-role="no-custom-themes" style="text-align: left; opacity: 0.6; padding: 4px;">No custom themes defined</p>
+      </div>
+    </section>
+
+    <section class="popup-section" aria-labelledby="section-homepage-title">
+      <header class="popup-section__header">
+        <h2 id="section-homepage-title">Homepage</h2>
+      </header>
+      <div class="settings-toggle-list">
+        <div class="toggle-control" data-role="homepage-toggle-row">
+          <div class="toggle-control__text">
+            <span class="toggle-control__title" id="homepage-toggle-label">Homepage rework</span>
+            <span class="toggle-control__description" id="homepage-toggle-description">(BETA) A reworked version of the Map Making App homepage</span>
+          </div>
+          <label class="toggle-switch" for="homepage-toggle">
+            <input type="checkbox" id="homepage-toggle" aria-labelledby="homepage-toggle-label" aria-describedby="homepage-toggle-description">
+            <span class="toggle-switch__slider" aria-hidden="true"></span>
+          </label>
+        </div>
+        <div class="toggle-control" data-role="homepage-terrain-row">
+          <div class="toggle-control__text">
+            <span class="toggle-control__title" id="homepage-terrain-label">Generate map card terrain</span>
+            <span class="toggle-control__description" id="homepage-terrain-description">(EARLY BETA) Use procedural terrain generation for each map. Performance-heavy until further optimizations can be made - be wary</span>
+          </div>
+          <label class="toggle-switch" for="homepage-terrain-toggle">
+            <input type="checkbox" id="homepage-terrain-toggle" aria-labelledby="homepage-terrain-label" aria-describedby="homepage-terrain-description">
+            <span class="toggle-switch__slider" aria-hidden="true"></span>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <section class="popup-section" aria-labelledby="section-shortcuts-title">
+      <header class="popup-section__header">
+        <h2 id="section-shortcuts-title">Keyboard Shortcuts</h2>
+      </header>
+      <ul class="shortcut-list" aria-label="Keyboard shortcuts">
+        <li class="shortcut-list__item">
+          <span class="shortcut-list__action">Fullscreen</span>
+          <span class="shortcut-list__binding">F</span>
+        </li>
+        <li class="shortcut-list__item">
+          <span class="shortcut-list__action">Return to home position</span>
+          <span class="shortcut-list__binding">R</span>
+        </li>
+        <li class="shortcut-list__item">
+          <span class="shortcut-list__action">Add locations on click</span>
+          <span class="shortcut-list__binding">1</span>
+        </li>
+        <li class="shortcut-list__item">
+          <span class="shortcut-list__action">Move locations on click</span>
+          <span class="shortcut-list__binding">2</span>
+        </li>
+        <li class="shortcut-list__item">
+          <span class="shortcut-list__action">Edit panel positions</span>
+          <span class="shortcut-list__binding">E</span>
+        </li>
+        <li class="shortcut-list__item">
+          <span class="shortcut-list__action">Reset panel positions</span>
+          <span class="shortcut-list__binding">Q</span>
+        </li>
+      </ul>
+      <div class="popup-footer-links" role="presentation">
+        <a class="popup-links" href="https://github.com/ruhan-p/Map-Making-App-Reloaded" target="_blank" rel="noopener noreferrer">Check out the GitHub!</a>
+        <a class="popup-links" href="https://forms.gle/WZJqvFshr5q3RDMy7" target="_blank" rel="noopener noreferrer">Feedback?</a>
+      </div>
+    </section>
+  </main>
+
+  <script src="../../lib/helpers.js"></script>
+  <script src="../../lib/colorpicker.js"></script>
+  <script src="../../lib/presets.js"></script>
+  <script src="./popup.js"></script>
+</body>
+</html>

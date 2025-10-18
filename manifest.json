@@ -1,0 +1,67 @@
+{
+  "name": "Map Making App Reloaded",
+  "version": "1.0.0",
+  "manifest_version": 3,
+  "description": "A total reworking of the layout and style of ReAnna's Map Making App. Includes some quality of life features and various improvements.",
+  "permissions": ["storage", "scripting", "activeTab"],
+  "host_permissions": ["https://map-making.app/*"],
+  "action": {
+    "default_popup": "ui/popup/popup.html",
+    "default_title": "Map Layout Controls"
+  },
+  "background": {
+    "service_worker": "background/bg.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://map-making.app/maps/*"],
+      "run_at": "document_idle",
+      "css": ["styles/root.css", "styles/editor.css"],
+      "js": [
+        "lib/helpers.js",
+        "content/constants.js",
+        "content/state.js",
+        "content/tags.js",
+        "content/shapes.js",
+        "content/selections.js",
+        "lib/poppers.js",
+        "lib/colorpicker.js",
+        "lib/presets.js",
+        "content/fullscreen.js",
+        "content/settings.js",
+        "content/overview.js",
+        "content/editor.js",
+        "content/extras.js",
+        "ui/popup/theme.js"
+      ]
+    },
+    {
+      "matches": ["https://map-making.app/"],
+      "exclude_matches": ["https://map-making.app/maps/*"],
+      "run_at": "document_idle",
+      "css": ["styles/root.css", "styles/home.css"],
+      "js": [
+        "lib/helpers.js",
+        "lib/delaunator.js",
+        "lib/simplex-noise.js",
+        "lib/presets.js",
+        "lib/colorpicker.js",
+        "ui/popup/theme.js",
+        "content/terrain.js",
+        "content/home.js"
+      ]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "inject/hook.js", 
+        "styles/editor.css",
+        "styles/root.css",
+        "lib/delaunator.js"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
