@@ -1336,7 +1336,6 @@
       headerParent.insertBefore(shell, header);
       shell.appendChild(header);
     }
-
     if (shell) {
       header.__extShell = shell;
       header.classList.add('ext-header-main');
@@ -1359,7 +1358,6 @@
       header.__extBackLink = backLink;
       return backLink;
     };
-
     const positionedBackLink = moveBackLink();
     if (!positionedBackLink && shell && !header.__extBackObserver) {
       const mo = new MutationObserver(() => {
@@ -1372,16 +1370,13 @@
       mo.observe(header, { childList: true, subtree: true });
       header.__extBackObserver = mo;
     }
-
     let reveal = header.querySelector('.ext-header-reveal');
     if (!reveal) {
       reveal = document.createElement('div');
       reveal.className = 'ext-header-reveal';
       header.appendChild(reveal);
     }
-
     header.__extReveal = reveal;
-
     let topWrapper = header.querySelector('.ext-header-top');
     if (!topWrapper) {
       topWrapper = document.createElement('div');
@@ -1395,27 +1390,37 @@
 
     let state = 'collapsed';
 
-    function getMetaNodes() {
+    function captureMetaNodesIntoReveal() {
       const meta = document.querySelector(SELECTORS.meta);
-      if (!meta) return [];
-      return ['.map-meta__total', '.map-meta__import'].map(sel => meta.querySelector(sel)).filter(Boolean);
+      if (!meta) return;
+
+      const nodesToMove = [
+        meta.querySelector('.map-meta__total'),
+        meta.querySelector('.map-meta__import')
+      ].filter(Boolean);
+
+      nodesToMove.forEach(node => {
+        if (node.parentElement !== reveal) {
+          if (!node.__extPh) {
+            const placeholder = document.createComment(`ph_${node.className.split(' ')[0]}`);
+            node.parentNode.insertBefore(placeholder, node);
+            node.__extPh = placeholder;
+          }
+          reveal.appendChild(node);
+        }
+      });
     }
 
-    function createClones(nodes) {
-      return nodes.map(node => node.cloneNode(true));
-    }
-
-    function addClonesToReveal() {
-      removeClonesFromReveal(); // Clear any existing
-      const nodes = getMetaNodes();
-      const clones = createClones(nodes);
-      clones.forEach(clone => reveal.appendChild(clone));
-    }
-
-    function removeClonesFromReveal() {
-      while (reveal.firstChild) {
-        reveal.firstChild.remove();
-      }
+    function restoreNodesFromReveal() {
+      const nodesToRestore = Array.from(reveal.children);
+      nodesToRestore.forEach(node => {
+        const placeholder = node.__extPh;
+        if (placeholder && placeholder.parentNode) {
+          placeholder.parentNode.insertBefore(node, placeholder);
+          placeholder.remove();
+          node.__extPh = null;
+        }
+      });
     }
 
     function expandHeader() {
@@ -1438,31 +1443,27 @@
       header.__extCollapsedW = collapsedW;
       header.style.width = oldWidth;
 
-      addClonesToReveal();
+      captureMetaNodesIntoReveal();
+
       const revealW = Math.round(reveal.scrollWidth) + 24;
       const expandedW = Math.max(collapsedW, revealW);
       header.__extExpandedW = expandedW;
-
       header.style.width = `${collapsedW}px`;
 
       requestAnimationFrame(() => {
         header.classList.add('ext-header-expanded');
-
         requestAnimationFrame(() => {
           header.style.width = `${expandedW}px`;
+          state = 'expanded';
         });
       });
-
-      state = 'expanded';
     }
 
     function collapseHeader() {
       if (state === 'collapsed' || state === 'collapsing') return;
 
       state = 'collapsing';
-
       const collapsedW = header.__extCollapsedW || Math.round(header.getBoundingClientRect().width);
-
       header.classList.remove('ext-header-expanded');
 
       requestAnimationFrame(() => {
@@ -1471,12 +1472,13 @@
     }
 
     function onRevealTransitionEnd(e) {
-      if (e.target !== reveal) return;
-      if (!['opacity', 'max-height'].includes(e.propertyName)) return;
+      if (e.target !== reveal || !['opacity', 'max-height'].includes(e.propertyName)) {
+        return;
+      }
 
       if (state === 'collapsing' && !header.classList.contains('ext-header-expanded')) {
-        removeClonesFromReveal();
-        header.style.width = ''; // Release width control
+        restoreNodesFromReveal();
+        header.style.width = '';
         state = 'collapsed';
       }
     }
