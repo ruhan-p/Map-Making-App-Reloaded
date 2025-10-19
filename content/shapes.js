@@ -710,7 +710,9 @@ async function initShapesManager(overviewEl) {
 
   const block = document.createElement('div');
   block.className = 'tool-block shape-manager';
-  block.style.maxWidth = '602px';
+  block.style.width = '100%';
+  block.style.maxWidth = '100%';
+  block.style.boxSizing = 'border-box';
 
   const { header, importBtn, exportBtn } = makeHeader('Shapes');
   const content = document.createElement('div');
