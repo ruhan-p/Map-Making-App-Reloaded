@@ -27,8 +27,8 @@
   ];
 
   const DEFAULT_FEATURE_FLAGS = Object.freeze({
-    homepageEnabled: true,
-    homepageTerrainEnabled: true,
+    homepageEnabled: false,
+    homepageTerrainEnabled: false,
     panelLayoutEnabled: true
   });
 
