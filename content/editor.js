@@ -17,6 +17,75 @@
   let CUSTOM_DEFAULTS = undefined;
   let CUSTOM_DEFAULTS_PROMISE = null;
 
+  const SYNC_STORAGE_KEY = 'extThemeState';
+  const DEFAULT_FEATURE_FLAGS = Object.freeze({
+    panelLayoutEnabled: true
+  });
+
+  let featureFlags = { ...DEFAULT_FEATURE_FLAGS };
+  let featureFlagsReady = false;
+  let hasRegisteredFlagWatcher = false;
+
+  function sanitizeFeatureFlagPayload(raw) {
+    const flags = { ...DEFAULT_FEATURE_FLAGS };
+    if (raw && typeof raw === 'object') {
+      if (typeof raw.panelLayoutEnabled === 'boolean') {
+        flags.panelLayoutEnabled = raw.panelLayoutEnabled;
+      }
+    }
+    return flags;
+  }
+
+  function featureFlagsEqual(a, b) {
+    const flagsA = sanitizeFeatureFlagPayload(a);
+    const flagsB = sanitizeFeatureFlagPayload(b);
+    return flagsA.panelLayoutEnabled === flagsB.panelLayoutEnabled;
+  }
+
+  function loadFeatureFlags() {
+    return new Promise((resolve) => {
+      if (!chrome?.storage?.sync?.get) {
+        resolve({ ...DEFAULT_FEATURE_FLAGS });
+        return;
+      }
+      try {
+        chrome.storage.sync.get(SYNC_STORAGE_KEY, (result) => {
+          if (chrome.runtime?.lastError) {
+            resolve({ ...DEFAULT_FEATURE_FLAGS });
+            return;
+          }
+          const state = result?.[SYNC_STORAGE_KEY];
+          resolve(sanitizeFeatureFlagPayload(state?.featureFlags));
+        });
+      } catch {
+        resolve({ ...DEFAULT_FEATURE_FLAGS });
+      }
+    });
+  }
+
+  function watchFeatureFlagChanges() {
+    if (hasRegisteredFlagWatcher || !chrome?.storage?.onChanged) return;
+    hasRegisteredFlagWatcher = true;
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName !== 'sync') return;
+      const entry = changes?.[SYNC_STORAGE_KEY];
+      if (!entry) return;
+      const nextFlags = sanitizeFeatureFlagPayload(entry.newValue?.featureFlags);
+      if (!featureFlagsEqual(featureFlags, nextFlags)) {
+        featureFlags = nextFlags;
+        window.setTimeout(() => {
+          try {
+            window.location.reload();
+          } catch {}
+        }, 50);
+      }
+    });
+  }
+
+  function isPanelLayoutEnabled() {
+    return !!featureFlags.panelLayoutEnabled;
+  }
+
   const ps = (() => {
     const CFG = {
       overview: { keySize: 'overview:size', minW: OVERVIEW_MIN_W, minHBase: OVERVIEW_MIN_H },
@@ -70,9 +139,10 @@
 
       const saved = await getSavedPos(cfg.keySize);
       const maxAllowedWidth = window.innerWidth - 100; // Safety margin
+      const safeMaxWidth = Number.isFinite(maxAllowedWidth) ? Math.max(1, maxAllowedWidth) : Math.max(1, cfg.minW);
 
       if (saved?.w && saved?.h) {
-        const constrainedWidth = Math.min(saved.w, maxAllowedWidth);
+        const constrainedWidth = Math.min(saved.w, safeMaxWidth);
         apply(el, constrainedWidth, saved.h);
         try {
           const floor = measureContentFloorForWidth(el, Math.max(cfg.minW, constrainedWidth), cfg.minHBase);
@@ -82,17 +152,30 @@
         return;
       }
 
-      if (kind === 'locprev') {
-        const floor = measureContentFloorForWidth(el, cfg.minW, cfg.minHBase);
-        apply(el, cfg.minW, floor);
-        el.__extLastContentFloor = floor;
-      } else { // overview or other
-        const r = el.getBoundingClientRect();
-        const w = Math.max(cfg.minW, Math.min(Math.round(r.width || cfg.minW), maxAllowedWidth));
-        const h = Math.max(cfg.minHBase, Math.round(r.height || cfg.minHBase));
-        apply(el, w, h);
-        el.__extLastContentFloor = measureContentFloorForWidth(el, w, cfg.minHBase);
+      if (kind === 'locprev' || kind === 'overview') {
+        const desiredWidth = Math.max(1, cfg.minW);
+        const width = Math.round(Math.max(1, Math.min(desiredWidth, safeMaxWidth)));
+        const minHeight = kind === 'locprev'
+          ? Math.max(1, LOCPREV_BASE_H)
+          : Math.max(1, cfg.minHBase);
+        let floor = measureContentFloorForWidth(el, width, minHeight);
+        if (!Number.isFinite(floor)) floor = minHeight;
+        const maxHeight = getMaxPanelHeight();
+        const boundedFloor = Math.max(minHeight, floor);
+        const height = Math.round(Math.max(1, Math.min(maxHeight, boundedFloor)));
+
+        apply(el, width, height);
+        el.__extLastContentFloor = boundedFloor;
+        el.__extJustRestored = true;
+        return;
       }
+
+      const r = el.getBoundingClientRect();
+      const desired = Math.max(cfg.minW, Math.round(r.width || cfg.minW));
+      const w = Math.round(Math.max(1, Math.min(desired, safeMaxWidth)));
+      const h = Math.max(cfg.minHBase, Math.round(r.height || cfg.minHBase));
+      apply(el, w, h);
+      el.__extLastContentFloor = measureContentFloorForWidth(el, w, cfg.minHBase);
       el.__extJustRestored = true;
     }
 
@@ -457,8 +540,10 @@
     };
 
     add(document.querySelector(SELECTORS.meta));
-    add(document.querySelector(SELECTORS.overview));
-    add(document.querySelector(SELECTORS.locprev));
+    if (isPanelLayoutEnabled()) {
+      add(document.querySelector(SELECTORS.overview));
+      add(document.querySelector(SELECTORS.locprev));
+    }
     add(document.querySelector(SELECTORS.controls));
 
     return els;
@@ -550,6 +635,7 @@
   }
 
   async function setLayoutDefaultsFromCurrentPositions() {
+    if (!isPanelLayoutEnabled()) return;
     try {
       const snapshot = await collectCurrentLayoutSnapshot();
       await setCustomLayoutDefaults(snapshot);
@@ -579,6 +665,7 @@
 
     for (const el of els) {
       if (!el || !el.__extKey) continue;
+      if (!isPanelLayoutEnabled() && (el.matches?.(SELECTORS.controls) || el.matches?.(SELECTORS.meta))) continue;
       const rect = el.getBoundingClientRect();
 
       if (el.matches(SELECTORS.overview)) {
@@ -608,23 +695,24 @@
   }
 
   function setDragMode(enabled) {
-    try { window.extState?.setState('isLayoutEditing', !!enabled); } catch {}
-    DRAG_MODE = enabled;
+    const effective = !!enabled && isPanelLayoutEnabled();
+    try { window.extState?.setState('isLayoutEditing', effective); } catch {}
+    DRAG_MODE = effective;
     try { window.__extUpdateLayoutPopupState?.(); } catch {}
 
-    if (enabled) {
+    if (effective) {
       document.body.classList.add('ext-edit-mode-active');
     } else {
       document.body.classList.remove('ext-edit-mode-active');
     }
 
     getDraggables().forEach(el => {
-      el.__extDragEnabled = enabled;
-      if (enabled) el.classList.add('ext-draggable-active');
+      el.__extDragEnabled = effective;
+      if (effective) el.classList.add('ext-draggable-active');
       else el.classList.remove('ext-draggable-active');
-      if (el && el.matches && (el.matches(SELECTORS.locprev) || el.matches(SELECTORS.overview))) setResizeUIEnabled(el, enabled);
+      if (el && el.matches && (el.matches(SELECTORS.locprev) || el.matches(SELECTORS.overview))) setResizeUIEnabled(el, effective);
     });
-    if (!enabled) { void persistAllVisiblePositions(); }
+    if (!effective) { void persistAllVisiblePositions(); }
   }
 
   function installLayoutHotkeys() {
@@ -637,6 +725,7 @@
         if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
         if (e.repeat) return;
         if (isTypingTarget(e.target)) return;
+        if (!isPanelLayoutEnabled()) return;
         const key = (e.key || '').toLowerCase();
         if (key === 'e') {
           e.preventDefault();
@@ -662,8 +751,85 @@
     }, true);
   }
 
+  const MARKER_VISIBILITY_LABEL = 'Adjust visibility of unselected markers';
+  function findMarkerVisibilityButton() {
+    const selectors = [
+      `${SELECTORS.overview} button[aria-label="${MARKER_VISIBILITY_LABEL}"]`,
+      `.ext-proxied-original button[aria-label="${MARKER_VISIBILITY_LABEL}"]`,
+      `button[aria-label="${MARKER_VISIBILITY_LABEL}"]`
+    ];
+    for (const selector of selectors) {
+      const btn = document.querySelector(selector);
+      if (btn && btn.isConnected) return btn;
+    }
+    return null;
+  }
+
+  function installEditorHotkeys() {
+    if (window.__extEditorHotkeysInstalled) return;
+    window.__extEditorHotkeysInstalled = true;
+
+    document.addEventListener('keydown', (e) => {
+      try {
+        if (e.defaultPrevented) return;
+        const key = (e.key || '').toLowerCase();
+
+        if (!e.metaKey && !e.ctrlKey && !e.altKey && !e.repeat && key === 'v') {
+          if (!isPanelLayoutEnabled()) return;
+          if (isTypingTarget(e.target)) return;
+          const toggleBtn = findMarkerVisibilityButton();
+          if (!toggleBtn) return;
+          const disabled = typeof isDisabled === 'function'
+            ? isDisabled(toggleBtn)
+            : (!!toggleBtn.disabled || toggleBtn.getAttribute?.('aria-disabled') === 'true');
+          if (disabled) return;
+          e.preventDefault();
+          e.stopPropagation();
+          toggleBtn.click();
+          return;
+        }
+
+        if (!e.repeat && e.metaKey && !e.altKey && !e.ctrlKey && key === 'f') {
+          const overview = document.querySelector(SELECTORS.overview);
+          if (!overview) return;
+          const filterInput = overview.querySelector('.ext-proxy-input:not(.ext-proxy-bulkadd)') ||
+            overview.querySelector('input[placeholder*="Filter tag" i], input[aria-label*="Filter" i]');
+          const targetInput = filterInput || document.querySelector('.ext-proxy-input:not(.ext-proxy-bulkadd)');
+          if (!(targetInput && typeof targetInput.focus === 'function')) return;
+          e.preventDefault();
+          e.stopPropagation();
+          try { targetInput.focus({ preventScroll: true }); } catch { targetInput.focus(); }
+          if (typeof targetInput.select === 'function') {
+            try { targetInput.select(); } catch {}
+          }
+          return;
+        }
+      } catch {}
+    }, true);
+  }
+
+  function updateLayoutButtonState(btn) {
+    const layoutBtn = btn || document.querySelector('.ext-layout-button');
+    if (!layoutBtn) return;
+    const disabled = !isPanelLayoutEnabled();
+    layoutBtn.disabled = disabled;
+    if (disabled) {
+      layoutBtn.classList.add('is-disabled');
+      layoutBtn.setAttribute('aria-disabled', 'true');
+      layoutBtn.setAttribute('title', 'Panel layout disabled');
+    } else {
+      layoutBtn.classList.remove('is-disabled');
+      layoutBtn.removeAttribute('aria-disabled');
+      layoutBtn.setAttribute('title', 'Edit the positions of the floating panels');
+    }
+  }
+
   function ensureDragToggle() {
-    if (document.querySelector('.ext-layout-button')) return;
+    const existing = document.querySelector('.ext-layout-button');
+    if (existing) {
+      updateLayoutButtonState(existing);
+      return;
+    }
     const wrap = document.createElement('div');
     wrap.className = 'ext-float ext-drag-ui';
 
@@ -721,6 +887,7 @@
     wrap.appendChild(settingsBtn);
     wrap.appendChild(layoutBtn);
     document.body.appendChild(wrap);
+    updateLayoutButtonState(layoutBtn);
   }
 
   const inited = new WeakSet();
@@ -1568,7 +1735,13 @@
 
   // MARK: STP
   // ------------------------------ setups ----------------------------------
-  const setupMap = (el) => { el.classList.add('ext-map-embed-bg'); };
+  const setupMap = (el) => {
+    if (isPanelLayoutEnabled()) {
+      el.classList.add('ext-map-embed-bg');
+    } else {
+      el.classList.remove('ext-map-embed-bg');
+    }
+  };
 
   const setupHeader = (el) => {
     bindHeaderHoverPortal();
@@ -1579,17 +1752,43 @@
   const setupMeta = (el) => {
     el.__extKey = DRAG_KEYS[SELECTORS.meta];
     el.classList.add('ext-float', 'ext-float--meta', 'ext-meta');
-    if (!el.style.left) el.style.left = '16px';
-    if (!el.style.top)  el.style.top  = '92px';
-
     el.classList.remove('ext-meta-expanded');
 
-    lockFixedBox(el);
-    makeDraggable(el);
-    el.__extDragEnabled = DRAG_MODE;
-    if (DRAG_MODE) el.classList.add('ext-draggable-active'); else el.classList.remove('ext-draggable-active');
+    if (el.__extMetaResizeObserver && isPanelLayoutEnabled()) {
+      try { el.__extMetaResizeObserver.disconnect(); } catch {}
+      el.__extMetaResizeObserver = null;
+    }
 
-    if (!el.__extRestored) { void restoreSavedPosition(el, el.__extKey); }
+    if (isPanelLayoutEnabled()) {
+      if (!el.style.left) el.style.left = '16px';
+      if (!el.style.top)  el.style.top  = '92px';
+      el.style.bottom = 'auto';
+      lockFixedBox(el);
+      makeDraggable(el);
+      el.__extDragEnabled = DRAG_MODE;
+      if (DRAG_MODE) el.classList.add('ext-draggable-active'); else el.classList.remove('ext-draggable-active');
+      if (!el.__extRestored) { void restoreSavedPosition(el, el.__extKey); }
+    } else {
+      el.style.left = '16px';
+      el.style.right = 'auto';
+      el.style.top = 'auto';
+      el.style.bottom = '16px';
+      el.style.minWidth = '';
+      el.style.minHeight = '';
+      el.style.willChange = '';
+      el.style.touchAction = '';
+      el.__extDragEnabled = false;
+      el.classList.remove('ext-draggable-active');
+      try {
+        if (!el.__extMetaResizeObserver && typeof ResizeObserver === 'function') {
+          const ro = new ResizeObserver(() => { try { syncDefaultLayoutControlsPosition(); } catch {} });
+          ro.observe(el);
+          el.__extMetaResizeObserver = ro;
+        }
+      } catch {}
+      syncDefaultLayoutControlsPosition();
+    }
+
     if (!window.__extMetaClickListenerBound) {
       window.__extMetaClickListenerBound = true;
       document.addEventListener('click', (e) => {
@@ -1614,46 +1813,71 @@
   };
   const setupOverview = (el) => {
     el.__extKey = DRAG_KEYS[SELECTORS.overview];
-    el.classList.add('ext-float', 'ext-float--overview');
+    const panelEnabled = isPanelLayoutEnabled();
 
-    el.classList.remove('is-ready', 'is-sized');
-
-    if (!el.querySelector('.ext-overview-scroller')) {
-      const scroller = document.createElement('div');
+    let scroller = el.querySelector('.ext-overview-scroller');
+    if (!scroller) {
+      scroller = document.createElement('div');
       scroller.className = 'ext-overview-scroller';
-
       while (el.firstChild) {
         scroller.appendChild(el.firstChild);
       }
-
       el.appendChild(scroller);
     }
 
-    const currentWidth = el.offsetWidth || parseInt(el.style.width || OVERVIEW_MIN_W, 10) || OVERVIEW_MIN_W;
-    const constrainedWidth = Math.max(OVERVIEW_MIN_W, Math.min(currentWidth, window.innerWidth - 100));
-    
-    el.style.width = constrainedWidth + 'px';
-    el.style.maxWidth = constrainedWidth + 'px';
-    
-    const scroller = el.querySelector('.ext-overview-scroller');
-    if (scroller) {
+    const resetFloatingStyles = () => {
+      el.style.left = '';
+      el.style.top = '';
+      el.style.right = '';
+      el.style.bottom = '';
+      el.style.width = '';
+      el.style.height = '';
+      el.style.minHeight = '';
+      el.style.minWidth = '';
+      el.style.maxWidth = '';
       scroller.style.width = '100%';
       scroller.style.maxWidth = '100%';
-      
+      scroller.style.height = '';
+      scroller.style.maxHeight = '';
+      scroller.style.overflowY = 'auto';
+      el.querySelectorAll('.ext-resize-handle').forEach((handle) => { try { handle.remove(); } catch {} });
+    };
+
+    if (panelEnabled) {
+      el.classList.add('ext-float', 'ext-float--overview');
+      el.classList.remove('is-ready', 'is-sized');
+
+      const currentWidth = el.offsetWidth || parseInt(el.style.width || OVERVIEW_MIN_W, 10) || OVERVIEW_MIN_W;
+      const constrainedWidth = Math.max(OVERVIEW_MIN_W, Math.min(currentWidth, window.innerWidth - 100));
+
+      el.style.width = constrainedWidth + 'px';
+      el.style.maxWidth = constrainedWidth + 'px';
+
+      scroller.style.width = '100%';
+      scroller.style.maxWidth = '100%';
       scroller.querySelectorAll('.tool-block, .ext-list-block, .tag-list').forEach(child => {
         child.style.maxWidth = '100%';
         child.style.boxSizing = 'border-box';
       });
-      
       void el.offsetHeight;
-    }
 
-    lockFixedBox(el, { minWidth: OVERVIEW_MIN_W, minHeight: OVERVIEW_MIN_H });
-    makeDraggable(el);
-    ensurePanelResizeUI(el);
-    setResizeUIEnabled(el, DRAG_MODE);
-    el.__extDragEnabled = DRAG_MODE;
-    if (DRAG_MODE) el.classList.add('ext-draggable-active'); else el.classList.remove('ext-draggable-active');
+      lockFixedBox(el, { minWidth: OVERVIEW_MIN_W, minHeight: OVERVIEW_MIN_H });
+      makeDraggable(el);
+      ensurePanelResizeUI(el);
+      setResizeUIEnabled(el, DRAG_MODE);
+      el.__extDragEnabled = DRAG_MODE;
+      if (DRAG_MODE) el.classList.add('ext-draggable-active'); else el.classList.remove('ext-draggable-active');
+    } else {
+      el.classList.remove('ext-float', 'ext-float--overview', 'ext-draggable-active', 'is-sized');
+      el.__extDragEnabled = false;
+      resetFloatingStyles();
+      setResizeUIEnabled(el, false);
+      scroller.querySelectorAll('.tool-block, .ext-list-block, .tag-list').forEach(child => {
+        child.style.maxWidth = '100%';
+        child.style.boxSizing = 'border-box';
+      });
+      el.classList.add('is-ready');
+    }
 
     const overviewStore = window.__extOverviewStorage || null;
     const overviewReady = overviewStore?.ready?.().catch(() => {}) ?? Promise.resolve();
@@ -1668,116 +1892,134 @@
     (async () => {
       await overviewReady;
       await Promise.allSettled([tagManagerReady, shapesReady, selectionReady, toolsReady]);
-      await ps.restore(el);
-      await ps.fit(el);
+      if (panelEnabled) {
+        await ps.restore(el);
+        await ps.fit(el);
 
-      if (!el.__extRestored) {
-        const sizeHint = {
-          width: Math.round(el.offsetWidth || OVERVIEW_MIN_W),
-          height: Math.round(el.offsetHeight || OVERVIEW_MIN_H)
-        };
-        await restoreSavedPosition(el, el.__extKey, { sizeHint });
+        if (!el.__extRestored) {
+          const sizeHint = {
+            width: Math.round(el.offsetWidth || OVERVIEW_MIN_W),
+            height: Math.round(el.offsetHeight || OVERVIEW_MIN_H)
+          };
+          await restoreSavedPosition(el, el.__extKey, { sizeHint });
+        }
+
+        el.classList.add('is-sized', 'is-ready');
+      } else {
+        el.classList.add('is-ready');
       }
-
-      el.classList.add('is-sized', 'is-ready');
     })();
-    ps.observe(el);
+    if (panelEnabled) {
+      ps.observe(el);
+    }
   };
   const setupLocPrev = (el) => {
     el.__extKey = DRAG_KEYS[SELECTORS.locprev];
-    el.classList.add('ext-float', 'ext-float--locprev');
-    (function() {
-      try {
-        const mem = LAST_LOC_SIZE;
-        if (mem && mem.w && mem.h) {
-          __extWithTransitionSuppressed(el, () => ps.apply(el, mem.w, mem.h));
-          el.__extJustRestored = true;
-        } else {
-          const floor = measureContentFloorForWidth(el, LOCPREV_MIN_W, 1);
-          __extWithTransitionSuppressed(el, () => ps.apply(el, LOCPREV_MIN_W, floor));
-          el.__extJustRestored = true;
-        }
-      } catch {}
-    })();
+    if (isPanelLayoutEnabled()) {
+      el.classList.add('ext-float', 'ext-float--locprev');
+      (function() {
+        try {
+          const mem = LAST_LOC_SIZE;
+          if (mem && mem.w && mem.h) {
+            __extWithTransitionSuppressed(el, () => ps.apply(el, mem.w, mem.h));
+            el.__extJustRestored = true;
+          } else {
+            const floor = measureContentFloorForWidth(el, LOCPREV_MIN_W, 1);
+            __extWithTransitionSuppressed(el, () => ps.apply(el, LOCPREV_MIN_W, floor));
+            el.__extJustRestored = true;
+          }
+        } catch {}
+      })();
 
-    (async () => {
-      const pending = await getSavedPos('locprev:pendingReset');
-      if (pending && pending.apply) {
-        setPanelToMinSize(el);
-        el.style.top = '80px';
+      (async () => {
+        const pending = await getSavedPos('locprev:pendingReset');
+        if (pending && pending.apply) {
+          setPanelToMinSize(el);
+          el.style.top = '80px';
+          const w = Math.round(el.offsetWidth || LOCPREV_MIN_W);
+          el.style.left = Math.max(0, window.innerWidth - w - 20) + 'px';
+          await setSavedPos('locprev:size', { w: Math.round(el.offsetWidth), h: Math.round(el.offsetHeight), savedAt: Date.now() });
+          const rect = el.getBoundingClientRect();
+          const vw2 = window.innerWidth, vh2 = window.innerHeight;
+          await setSavedPos(DRAG_KEYS[SELECTORS.locprev], {
+            l: Math.round(rect.left), t: Math.round(rect.top),
+            vw: vw2, vh: vh2,
+            lp: rect.left / Math.max(1, vw2),
+            tp: rect.top  / Math.max(1, vh2),
+            savedAt: Date.now()
+          });
+          await setSavedPos('locprev:pendingReset', { apply: false, ts: pending.ts || Date.now() });
+          el.__extRestored = true;
+        } else {
+          if (!el.__extRestored) {
+            await ps.restore(el);
+            await ps.fit(el);
+            await restoreSavedPosition(el, el.__extKey);
+          }
+        }
+      })();
+
+      if (!el.style.top)  el.style.top  = '80px';
+      if (!el.style.left) {
         const w = Math.round(el.offsetWidth || LOCPREV_MIN_W);
         el.style.left = Math.max(0, window.innerWidth - w - 20) + 'px';
-        await setSavedPos('locprev:size', { w: Math.round(el.offsetWidth), h: Math.round(el.offsetHeight), savedAt: Date.now() });
-        const rect = el.getBoundingClientRect();
-        const vw2 = window.innerWidth, vh2 = window.innerHeight;
-        await setSavedPos(DRAG_KEYS[SELECTORS.locprev], {
-          l: Math.round(rect.left), t: Math.round(rect.top),
-          vw: vw2, vh: vh2,
-          lp: rect.left / Math.max(1, vw2),
-          tp: rect.top  / Math.max(1, vh2),
-          savedAt: Date.now()
-        });
-        await setSavedPos('locprev:pendingReset', { apply: false, ts: pending.ts || Date.now() });
-        el.__extRestored = true;
-      } else {
-        if (!el.__extRestored) {
-          await ps.restore(el);
-          await ps.fit(el);
-          await restoreSavedPosition(el, el.__extKey);
+      }
+      (async () => {
+        const pending = await getSavedPos('locprev:pendingReset');
+        if (pending && pending.apply) {
+          setPanelToMinSize(el);
+          el.style.top = '80px';
+          const w = Math.round(el.offsetWidth || LOCPREV_MIN_W);
+          el.style.left = Math.max(0, window.innerWidth - w - 20) + 'px';
+
+          await setSavedPos('locprev:size', {
+            w: Math.round(el.offsetWidth),
+            h: Math.round(el.offsetHeight),
+            savedAt: Date.now()
+          });
+          const rect = el.getBoundingClientRect();
+          const vw2 = window.innerWidth, vh2 = window.innerHeight;
+          await setSavedPos(DRAG_KEYS[SELECTORS.locprev], {
+            l: Math.round(rect.left),
+            t: Math.round(rect.top),
+            vw: vw2, vh: vh2,
+            lp: rect.left / Math.max(1, vw2),
+            tp: rect.top  / Math.max(1, vh2),
+            savedAt: Date.now()
+          });
+
+          await setSavedPos('locprev:pendingReset', { apply: false, ts: pending.ts || Date.now() });
+
+          el.__extRestored = true;
         }
-      }
-    })();
+      })();
 
-    if (!el.style.top)  el.style.top  = '80px';
-    if (!el.style.left) {
-      const w = Math.round(el.offsetWidth || LOCPREV_MIN_W);
-      el.style.left = Math.max(0, window.innerWidth - w - 20) + 'px';
+      lockFixedBox(el, { minWidth: LOCPREV_MIN_W });
+      ensurePanelResizeUI(el);
+      updateResizeHandleTitles(el);
+      makeDraggable(el);
+      setResizeUIEnabled(el, DRAG_MODE);
+      el.__extDragEnabled = DRAG_MODE;
+      if (DRAG_MODE) el.classList.add('ext-draggable-active'); else el.classList.remove('ext-draggable-active');
+    } else {
+      el.classList.remove('ext-float', 'ext-float--locprev', 'ext-draggable-active');
+      el.__extDragEnabled = false;
+      el.style.left = '';
+      el.style.top = '';
+      el.style.right = '';
+      el.style.bottom = '';
+      el.style.width = '';
+      el.style.height = '';
+      el.style.minHeight = '';
+      el.style.minWidth = '';
     }
-    (async () => {
-      const pending = await getSavedPos('locprev:pendingReset');
-      if (pending && pending.apply) {
-      setPanelToMinSize(el);
-      el.style.top = '80px';
-      const w = Math.round(el.offsetWidth || LOCPREV_MIN_W);
-      el.style.left = Math.max(0, window.innerWidth - w - 20) + 'px';
-
-        await setSavedPos('locprev:size', {
-          w: Math.round(el.offsetWidth),
-          h: Math.round(el.offsetHeight),
-          savedAt: Date.now()
-        });
-        const rect = el.getBoundingClientRect();
-        const vw2 = window.innerWidth, vh2 = window.innerHeight;
-        await setSavedPos(DRAG_KEYS[SELECTORS.locprev], {
-          l: Math.round(rect.left),
-          t: Math.round(rect.top),
-          vw: vw2, vh: vh2,
-          lp: rect.left / Math.max(1, vw2),
-          tp: rect.top  / Math.max(1, vh2),
-          savedAt: Date.now()
-        });
-
-        await setSavedPos('locprev:pendingReset', { apply: false, ts: pending.ts || Date.now() });
-
-        el.__extRestored = true;
-      }
-    })();
-    
-    lockFixedBox(el, { minWidth: LOCPREV_MIN_W });
-    ensurePanelResizeUI(el);
-    updateResizeHandleTitles(el);
-    makeDraggable(el);
-    setResizeUIEnabled(el, DRAG_MODE);
-    el.__extDragEnabled = DRAG_MODE;
-    
-    if (DRAG_MODE) el.classList.add('ext-draggable-active'); else el.classList.remove('ext-draggable-active');
 
     if (!el.__extTagClickListenerBound) {
       el.__extTagClickListenerBound = true;
 
       el.addEventListener('click', (e) => {
         const tag = e.target.closest('.tag.has-button');
-        
+
         if (!tag) return;
 
         if (e.target !== tag && e.target.closest('a, button, input')) {
@@ -2198,21 +2440,50 @@
   const setupControls = (el) => {
     el.__extKey = DRAG_KEYS[SELECTORS.controls];
     el.classList.add('ext-float');
-    if (!el.style.left && !el.style.top) {
+    if (isPanelLayoutEnabled()) {
+      if (!el.style.left && !el.style.top) {
         resetElementToDefault(el);
-    }
-
-    lockFixedBox(el);
-    makeDraggable(el);
-
-    el.__extDragEnabled = DRAG_MODE;
-    if (DRAG_MODE) el.classList.add('ext-draggable-active');
-    else el.classList.remove('ext-draggable-active');
-
-    if (!el.__extRestored) {
+      }
+      lockFixedBox(el);
+      makeDraggable(el);
+      el.__extDragEnabled = DRAG_MODE;
+      if (DRAG_MODE) el.classList.add('ext-draggable-active');
+      else el.classList.remove('ext-draggable-active');
+      if (!el.__extRestored) {
         void restoreSavedPosition(el, el.__extKey);
+      }
+    } else {
+      el.__extDragEnabled = false;
+      el.classList.remove('ext-draggable-active');
+      el.style.left = '16px';
+      el.style.right = 'auto';
+      el.style.top = 'auto';
+      el.style.bottom = '120px';
+      el.style.minWidth = '';
+      el.style.minHeight = '';
+      el.style.willChange = '';
+      el.style.touchAction = '';
+      syncDefaultLayoutControlsPosition(el);
     }
   };
+
+  function syncDefaultLayoutControlsPosition(controlsEl = null) {
+    if (isPanelLayoutEnabled()) return;
+    const el = controlsEl || document.querySelector(SELECTORS.controls);
+    if (!el) return;
+    const meta = document.querySelector(SELECTORS.meta);
+    let bottomPx = 120;
+    if (meta) {
+      const rect = meta.getBoundingClientRect();
+      const metaHeight = Math.max(0, Math.round(rect.height || 0));
+      const gap = 16;
+      bottomPx = Math.max(16 + gap + metaHeight, 64);
+    }
+    el.style.left = '16px';
+    el.style.right = 'auto';
+    el.style.top = 'auto';
+    el.style.bottom = `${bottomPx}px`;
+  }
 
   function tagElementsForHiding() {
     const selector = '.map-control.map-control--menu .map-control__menu-button';
@@ -2228,7 +2499,12 @@
     });
   }
 
-  document.addEventListener('fullscreenchange', () => { void positionLPPanels(); const el = document.querySelector(SELECTORS.locprev); ps.fit(el); }, true);
+  document.addEventListener('fullscreenchange', () => {
+    void positionLPPanels();
+    if (!isPanelLayoutEnabled()) return;
+    const el = document.querySelector(SELECTORS.locprev);
+    ps.fit(el);
+  }, true);
   try {
     window.__extRestoreFSLP = () => { void positionLPPanels(); };
   } catch {}
@@ -2236,14 +2512,18 @@
   // MARK: CRE
   // ------------------------------ core apply -------------------------------
   function applyAll() {
+    if (!featureFlagsReady) return;
     consolidateControls();
     consolidateLocPrevControls();
     tagElementsForHiding();
     ensureCompassEnhanced();
     ensureNativeTooltips();
     document.documentElement.classList.add('ext-floating-layout');
+    document.documentElement.classList.toggle('ext-panel-layout-disabled', !isPanelLayoutEnabled());
     ensureDragToggle();
+    updateLayoutButtonState();
     installLayoutHotkeys();
+    installEditorHotkeys();
     ensure(SELECTORS.map, setupMap);
     ensure(SELECTORS.header, setupHeader);
     ensure(SELECTORS.meta, setupMeta);
@@ -2251,15 +2531,31 @@
     ensure(SELECTORS.modal, setupModal);
     ensure(SELECTORS.locprev, setupLocPrev);
     ensure(SELECTORS.controls, setupControls);
+    if (!isPanelLayoutEnabled()) {
+      syncDefaultLayoutControlsPosition();
+    }
   }
 
   const applyAllThrottled = throttle(applyAll, 120);
   const runApplyAll = window.__extCreatePanoAwareRunner ? window.__extCreatePanoAwareRunner(applyAllThrottled) : applyAllThrottled;
+  watchFeatureFlagChanges();
+
+  async function bootstrapPanelLayout() {
+    try {
+      featureFlags = await loadFeatureFlags();
+    } catch {
+      featureFlags = { ...DEFAULT_FEATURE_FLAGS };
+    }
+    featureFlagsReady = true;
+    runApplyAll();
+  }
+
+  const startBootstrap = () => { void bootstrapPanelLayout(); };
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', runApplyAll, { once: true });
+    document.addEventListener('DOMContentLoaded', startBootstrap, { once: true });
   } else {
-    runApplyAll();
+    startBootstrap();
   }
 
   try {
@@ -2281,6 +2577,7 @@
   // ------------------------------ viewport clamps -------------------------
   function pushPanelIntoView(el) {
     if (!el || !el.isConnected) return;
+    if (!isPanelLayoutEnabled() && (el.matches?.(SELECTORS.meta) || el.matches?.(SELECTORS.controls))) return;
     const rect = el.getBoundingClientRect();
     const styleLeft = parseFloat(el.style.left);
     const styleTop = parseFloat(el.style.top);
@@ -2312,6 +2609,9 @@
         __extClampRAF = 0;
         clampAllPanelsToViewport();
       });
+    }
+    if (!isPanelLayoutEnabled()) {
+      syncDefaultLayoutControlsPosition();
     }
     if (__extPersistTO) clearTimeout(__extPersistTO);
     __extPersistTO = setTimeout(() => { void persistAllVisiblePositions(); }, 400);
