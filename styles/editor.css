@@ -7,6 +7,17 @@
   height: 100%;
   overflow: hidden;
 }
+.ext-panel-layout-disabled body {
+  height: 100%;
+  overflow: auto;
+}
+.page-map-editor {
+  height: 100% !important;
+  grid-gap: 0 !important;
+  margin: 0 !important;
+  background: var(--ext-card-bg);
+  overflow-x: hidden !important;
+}
 input {
   color: var(--ext-card-fg) !important;
   background: var(--ext-el-bg) !important;
@@ -179,6 +190,9 @@ button:disabled, .button:disabled {
   width: 100vw !important;
   height: 100vh !important;
   z-index: var(--z-map) !important;
+}
+.map-embed > div> div  > div:first-child {
+  background-color: var(--ext-card-bg) !important;
 }
 .ext-float--header {
   position: fixed !important;
@@ -373,6 +387,10 @@ button:disabled, .button:disabled {
 @keyframes ext-half-spin {
   from { transform: rotate(0deg) scale(0.75); }
   to   { transform: rotate(90deg) scale(0.8); }
+}
+.ext-panel-layout-disabled .map-overview,
+.ext-panel-layout-disabled .location-preview {
+  margin-top: 64px;
 }
 .ext-float--overview {
   position: fixed !important;
@@ -662,10 +680,10 @@ button:disabled, .button:disabled {
   gap: 8px;
   justify-content: flex-end;
 }
-.ext-notify--info { background: rgba(var(--ext-notify-info-bg),0.8) !important; box-shadow: 0 8px 24px rgba(var(--ext-notify-info-bg),0.4); }
-.ext-notify--success { background: rgba(var(--ext-notify-success-bg),0.8) !important; box-shadow: 0 8px 24px rgba(var(--ext-notify-success-bg),0.4); }
-.ext-notify--warning { background: rgba(var(--ext-notify-warning-bg),0.8) !important; box-shadow: 0 8px 24px rgba(var(--ext-notify-warning-bg),0.4); }
-.ext-notify--error { background: rgba(var(--ext-notify-error-bg),0.8) !important; box-shadow: 0 8px 24px rgba(var(--ext-notify-error-bg),0.4); }
+.ext-notify--info { background: rgba(var(--ext-notify-info-bg),0.8) !important; box-shadow: 0 8px 24px rgba(var(--ext-notify-info-bg),0.2); }
+.ext-notify--success { background: rgba(var(--ext-notify-success-bg),0.8) !important; box-shadow: 0 8px 24px rgba(var(--ext-notify-success-bg),0.2); }
+.ext-notify--warning { background: rgba(var(--ext-notify-warning-bg),0.8) !important; box-shadow: 0 8px 24px rgba(var(--ext-notify-warning-bg),0.2); }
+.ext-notify--error { background: rgba(var(--ext-notify-error-bg),0.8) !important; box-shadow: 0 8px 24px rgba(var(--ext-notify-error-bg),0.2); }
 .ext-list-block {
   position: relative;
   max-width: 100%;
