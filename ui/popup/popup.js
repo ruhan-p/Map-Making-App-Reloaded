@@ -28,7 +28,8 @@
 
   const DEFAULT_FEATURE_FLAGS = Object.freeze({
     homepageEnabled: true,
-    homepageTerrainEnabled: true
+    homepageTerrainEnabled: true,
+    panelLayoutEnabled: true
   });
 
   const colorPickerBindings = new Map();
@@ -50,6 +51,8 @@
   let homepageToggle = null;
   let homepageTerrainToggle = null;
   let homepageTerrainRow = null;
+  let panelLayoutToggle = null;
+  let panelLayoutRow = null;
 
   function selectTab(keyToSelect) {
     tabElements.forEach(({ button, panel }, key) => {
@@ -89,6 +92,8 @@
     homepageToggle = document.getElementById('homepage-toggle');
     homepageTerrainToggle = document.getElementById('homepage-terrain-toggle');
     homepageTerrainRow = document.querySelector('[data-role="homepage-terrain-row"]');
+    panelLayoutToggle = document.getElementById('panel-layout-toggle');
+    panelLayoutRow = document.querySelector('[data-role="panel-layout-toggle-row"]');
     
     buildCustomPanelShell();
 
@@ -112,7 +117,7 @@
     renderThemeButtons();
     updateApplyButton();
     updateSaveCustomThemeButton();
-    syncHomepageControls();
+    syncFeatureControls();
 
     if (COLOR_FIELDS.length > 0) {
       selectTab(COLOR_FIELDS[0].key);
@@ -123,6 +128,7 @@
     saveThemeForm?.addEventListener('submit', onSaveThemeFormSubmit);
     homepageToggle?.addEventListener('change', onHomepageToggleChange, { passive: true });
     homepageTerrainToggle?.addEventListener('change', onHomepageTerrainToggleChange, { passive: true });
+    panelLayoutToggle?.addEventListener('change', onPanelLayoutToggleChange, { passive: true });
     document.addEventListener('pointerdown', onGlobalPointerDown, true);
   }
 
@@ -255,11 +261,13 @@
   function sanitizeFeatureFlags(raw) {
     const merged = {
       homepageEnabled: DEFAULT_FEATURE_FLAGS.homepageEnabled,
-      homepageTerrainEnabled: DEFAULT_FEATURE_FLAGS.homepageTerrainEnabled
+      homepageTerrainEnabled: DEFAULT_FEATURE_FLAGS.homepageTerrainEnabled,
+      panelLayoutEnabled: DEFAULT_FEATURE_FLAGS.panelLayoutEnabled
     };
     if (raw && typeof raw === 'object') {
       if (typeof raw.homepageEnabled === 'boolean') merged.homepageEnabled = raw.homepageEnabled;
       if (typeof raw.homepageTerrainEnabled === 'boolean') merged.homepageTerrainEnabled = raw.homepageTerrainEnabled;
+      if (typeof raw.panelLayoutEnabled === 'boolean') merged.panelLayoutEnabled = raw.panelLayoutEnabled;
     }
     if (!merged.homepageEnabled) {
       merged.homepageTerrainEnabled = false;
@@ -271,7 +279,8 @@
     const a = sanitizeFeatureFlags(prev);
     const b = sanitizeFeatureFlags(next);
     return a.homepageEnabled === b.homepageEnabled &&
-      a.homepageTerrainEnabled === b.homepageTerrainEnabled;
+      a.homepageTerrainEnabled === b.homepageTerrainEnabled &&
+      a.panelLayoutEnabled === b.panelLayoutEnabled;
   }
 
   function ensureFeatureFlags(target) {
@@ -279,7 +288,7 @@
     target.featureFlags = sanitizeFeatureFlags(target.featureFlags);
   }
 
-  function syncHomepageControls() {
+  function syncFeatureControls() {
     if (!draftState) return;
     ensureFeatureFlags(draftState);
     const flags = draftState.featureFlags;
@@ -303,6 +312,13 @@
         homepageTerrainRow.setAttribute('aria-disabled', 'true');
       }
     }
+    if (panelLayoutToggle) {
+      panelLayoutToggle.checked = !!flags.panelLayoutEnabled;
+    }
+    if (panelLayoutRow) {
+      panelLayoutRow.setAttribute('aria-disabled', 'false');
+      panelLayoutRow.classList.remove('is-disabled');
+    }
   }
 
   function onHomepageToggleChange(event) {
@@ -313,7 +329,7 @@
     if (!isEnabled) {
       draftState.featureFlags.homepageTerrainEnabled = false;
     }
-    syncHomepageControls();
+    syncFeatureControls();
     updateApplyButton();
   }
 
@@ -322,7 +338,16 @@
     ensureFeatureFlags(draftState);
     const isEnabled = !!event?.target?.checked;
     draftState.featureFlags.homepageTerrainEnabled = !!draftState.featureFlags.homepageEnabled && isEnabled;
-    syncHomepageControls();
+    syncFeatureControls();
+    updateApplyButton();
+  }
+
+  function onPanelLayoutToggleChange(event) {
+    if (!draftState) return;
+    ensureFeatureFlags(draftState);
+    const isEnabled = !!event?.target?.checked;
+    draftState.featureFlags.panelLayoutEnabled = isEnabled;
+    syncFeatureControls();
     updateApplyButton();
   }
 
