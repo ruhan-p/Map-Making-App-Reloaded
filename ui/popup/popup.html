@@ -47,6 +47,24 @@
       </div>
     </section>
 
+    <section class="popup-section" aria-labelledby="section-editor-title">
+      <header class="popup-section__header">
+        <h2 id="section-editor-title">Editor</h2>
+      </header>
+      <div class="settings-toggle-list">
+        <div class="toggle-control" data-role="panel-layout-toggle-row">
+          <div class="toggle-control__text">
+            <span class="toggle-control__title" id="panel-layout-toggle-label">Panel Layout</span>
+            <span class="toggle-control__description" id="panel-layout-toggle-description">Use floating panels for the overview and location preview</span>
+          </div>
+          <label class="toggle-switch" for="panel-layout-toggle">
+            <input type="checkbox" id="panel-layout-toggle" aria-labelledby="panel-layout-toggle-label" aria-describedby="panel-layout-toggle-description">
+            <span class="toggle-switch__slider" aria-hidden="true"></span>
+          </label>
+        </div>
+      </div>
+    </section>
+
     <section class="popup-section" aria-labelledby="section-homepage-title">
       <header class="popup-section__header">
         <h2 id="section-homepage-title">Homepage</h2>
@@ -89,6 +107,10 @@
           <span class="shortcut-list__binding">R</span>
         </li>
         <li class="shortcut-list__item">
+          <span class="shortcut-list__action">Toggle marker visibility</span>
+          <span class="shortcut-list__binding">V</span>
+        </li>
+        <li class="shortcut-list__item">
           <span class="shortcut-list__action">Add locations on click</span>
           <span class="shortcut-list__binding">1</span>
         </li>
@@ -103,6 +125,10 @@
         <li class="shortcut-list__item">
           <span class="shortcut-list__action">Reset panel positions</span>
           <span class="shortcut-list__binding">Q</span>
+        </li>
+        <li class="shortcut-list__item">
+          <span class="shortcut-list__action">Focus tag filter</span>
+          <span class="shortcut-list__binding">&#8984; F</span>
         </li>
       </ul>
       <div class="popup-footer-links" role="presentation">
