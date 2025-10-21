@@ -1,17 +1,6 @@
 (() => {
   'use strict';
 
-  function isTypingTarget(el) {
-    try {
-      if (!el) return false;
-      if (el.isContentEditable) return true;
-      const tag = (el.tagName || '').toUpperCase();
-      return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
-    } catch {
-      return false;
-    }
-  }
-
   let LAST_LOC_SIZE = null;
 
   let CUSTOM_DEFAULTS = undefined;
@@ -25,6 +14,17 @@
   let featureFlags = { ...DEFAULT_FEATURE_FLAGS };
   let featureFlagsReady = false;
   let hasRegisteredFlagWatcher = false;
+
+  function isTypingTarget(el) {
+    try {
+      if (!el) return false;
+      if (el.isContentEditable) return true;
+      const tag = (el.tagName || '').toUpperCase();
+      return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+    } catch {
+      return false;
+    }
+  }
 
   function sanitizeFeatureFlagPayload(raw) {
     const flags = { ...DEFAULT_FEATURE_FLAGS };
@@ -793,7 +793,7 @@
           const overview = document.querySelector(SELECTORS.overview);
           if (!overview) return;
           const filterInput = overview.querySelector('.ext-proxy-input:not(.ext-proxy-bulkadd)') ||
-            overview.querySelector('input[placeholder*="Filter tag" i], input[aria-label*="Filter" i]');
+            overview.querySelector('input[placeholder*="Search tag" i], input[placeholder*="Filter tag" i], input[aria-label*="Filter" i]');
           const targetInput = filterInput || document.querySelector('.ext-proxy-input:not(.ext-proxy-bulkadd)');
           if (!(targetInput && typeof targetInput.focus === 'function')) return;
           e.preventDefault();
