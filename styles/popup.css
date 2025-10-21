@@ -21,9 +21,63 @@ button {
   gap: 16px;
 }
 
+.popup-main-title-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: linear-gradient(190deg, #00ffd06f, #00707aad);
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.popup-main-title-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.popup-main-title-text {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.popup-main-title {
+  margin: 0;
+}
+
+.popup-version {
+  margin: 0;
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+
+.tutorial-button {
+  display: inline-flex;
+  justify-content: center;
+  border-radius: 8px;
+  border: none;
+  background: rgba(var(--ext-card-fg-val), 0.2);
+  color: var(--ext-card-fg);
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.18s ease;
+}
+
+.tutorial-button:hover {
+  filter: brightness(1.4);
+  transform: scale(1.05);
+}
+
+.tutorial-button:focus-visible {
+  outline: 2px solid rgba(var(--ext-card-fg-val), 0.45);
+  outline-offset: 2px;
+}
+
 .popup__title {
-  padding-bottom: 16px;
-  border-bottom: 2px solid gray;
   text-align: center;
   width: 80%;
   font-size: 1.5rem;
@@ -86,7 +140,6 @@ button {
 }
 
 .primary-button#apply-button {
-  margin-top: 16px;
   width: 80%;
 }
 
@@ -204,7 +257,7 @@ button {
 }
 
 .theme-button.is-selected {
-  box-shadow: 0 0 4px 2px rgb(var(--ext-highlight));
+  box-shadow: 0 0 0 2px rgb(var(--ext-highlight));
 }
 
 .custom-panel {
@@ -225,7 +278,7 @@ button {
   height: 20px;
   padding: 0;
   border-radius: 8px;
-  background: var(--ext-red);
+  background: rgba(255,0,0,0.8);
   color: rgb(255,255,255);
   font-size: 12px;
   font-weight: 600;
