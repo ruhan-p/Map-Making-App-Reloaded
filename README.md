@@ -10,7 +10,7 @@ Map Making App Reloaded is a Chrome extension that provides a total rework of Re
 example.com
 
 
-#### If you like my work, please feel free to donate - it really helps small developers like me:
+#### If you like my work, please feel free to donate - projects like these take while and it really helps small developers like me:
 
 
 [buymeacoffee.com/ccosine](buymeacoffee.com/ccosine)
