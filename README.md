@@ -58,6 +58,7 @@ example.com
 - When the panels are rendered for the first time, they sometimes appear in the incorrect position. This can be resolved by resetting the panel position using (Q) or the layout button.
 - Terrain generation has terrible performance (referenced above). This can be resolved for now by simply disabling it until better optimizations come out.
 - Map styles cannot be added or changed with the extension enabled - you must disable the extension to do so.
+- There is currently no way to change or enable map layers (e.g. terrain, labels, etc) - you must disable the extension change these.
 
 #### Please note that the extension DOES NOT have access to the site's API. Thus, all data stored by the extension (e.g. panel positions, shapes, etc.) only exist in the site's local storage data. Thus, clearing site data will also clear the extension data. Additionally, extension data is not accessible across the user's account, but is saved locally on the browser. Thus, you will not be able to access data stored in the extension anywhere other than the specific machine/browser it was saved on.
 
