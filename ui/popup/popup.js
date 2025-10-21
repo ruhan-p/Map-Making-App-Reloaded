@@ -9,6 +9,7 @@
     return;
   }
   const PRESET_ORDER = globalThis.__EXT_PRESET_THEME_ORDER__ || Object.keys(PRESET_THEMES);
+  const TUTORIAL_MESSAGE_TYPE = 'EXT_OPEN_TUTORIAL_DIALOG';
 
   const DEFAULT_CUSTOM = Object.freeze({
     '--ext-card-fg-val': PRESET_THEMES.defaultDark.tokens['--ext-card-fg-val'],
@@ -53,6 +54,7 @@
   let homepageTerrainRow = null;
   let panelLayoutToggle = null;
   let panelLayoutRow = null;
+  let tutorialButton = null;
 
   function selectTab(keyToSelect) {
     tabElements.forEach(({ button, panel }, key) => {
@@ -94,6 +96,7 @@
     homepageTerrainRow = document.querySelector('[data-role="homepage-terrain-row"]');
     panelLayoutToggle = document.getElementById('panel-layout-toggle');
     panelLayoutRow = document.querySelector('[data-role="panel-layout-toggle-row"]');
+    tutorialButton = document.getElementById('tutorial-button');
     
     buildCustomPanelShell();
 
@@ -129,6 +132,7 @@
     homepageToggle?.addEventListener('change', onHomepageToggleChange, { passive: true });
     homepageTerrainToggle?.addEventListener('change', onHomepageTerrainToggleChange, { passive: true });
     panelLayoutToggle?.addEventListener('change', onPanelLayoutToggleChange, { passive: true });
+    tutorialButton?.addEventListener('click', onTutorialButtonClick);
     document.addEventListener('pointerdown', onGlobalPointerDown, true);
   }
 
@@ -229,6 +233,25 @@
           destroy: pickerRef?.api?.destroy?.bind(pickerRef.api) || null
         });
       }
+    });
+  }
+
+  function onTutorialButtonClick() {
+    if (!chrome?.tabs?.query || !chrome?.tabs?.sendMessage) return;
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const targetTab = Array.isArray(tabs) ? tabs[0] : null;
+      const tabId = targetTab?.id;
+      if (typeof tabId !== 'number') {
+        try { window.close(); } catch {}
+        return;
+      }
+      chrome.tabs.sendMessage(tabId, { type: TUTORIAL_MESSAGE_TYPE }, () => {
+        const err = chrome.runtime?.lastError;
+        if (err && !/Receiving end does not exist/i.test(err.message || '')) {
+          console.warn('Tutorial dialog request failed:', err);
+        }
+        try { window.close(); } catch {}
+      });
     });
   }
 
@@ -378,7 +401,7 @@
           const deleteBtn = document.createElement('button');
           deleteBtn.type = 'button';
           deleteBtn.className = 'theme-button__delete';
-          deleteBtn.textContent = 'x';
+          deleteBtn.innerHTML = '&times;';
           deleteBtn.title = 'Delete Custom Theme';
           deleteBtn.addEventListener('click', (e) => {
               e.stopPropagation();
