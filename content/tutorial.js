@@ -81,6 +81,7 @@
           <p>Which will then be saved in the "Custom Themes" section. You can then click "Apply Changes" to see your new theme in action. Below, I have demonstrated an example "Pink Theme":</p>
           <img src="${getImgURL('tutorial0-3.webp')}" alt="Extension Theme Applied Screenshot"/>
           <p> The color choices are certainly questionable, but you get the idea.</p>
+          <p> NOTE: Custom themes are stored in the browser's local storage, and are not synced to your account. This means that custom themes will not be shared between users, and will not be present if you open the map on a different device or browser. I will try my best to improve this functionality in the future.</p>
 
           <h4>Panel Layout</h4>
           <p>The extension also allows the user to enable or disable the floating panel layout. When enabled, panels will float above the background map:</p>
@@ -120,6 +121,8 @@
           <h4>Setting/Clearing the Default Layout</h4>
           <p>If you find yourself using a certain layout that is different from the preset, you can click the "Set as default layout" option in the layout menu to save this as the default layout. IF you set a default layout, clicking "Reset panels to defaults" or Q will restore this position instead.</p>
           <p>If you want to get rid of your custom default position and restore the original values, you can hold down Control/Command with the layout menu open - this will change the "Set as default layout" option to a new "Clear default layout" option.</p>
+          <h4>Note:</h4>
+          <p>Panel positions are saved in the browser's local storage, and are not synced to your account. This means that panel positions will not be shared between users, and will not be present if you open the map on a different device or browser. I will try my best to improve this functionality in the future.</p>
         </section>
 
         <section class="ext-tutorial-dialog__section">
@@ -193,6 +196,7 @@
           <p>To add a shape to the shape manager, simply draw it on the map using the "Draw a polygon" and "Draw a rectangle" buttons on the control panel. Shapes will automatically be added to the selections and the manager. Additionally, you can also import and export geoJSON files into the shapes manager. Below is a demo with 11 shapes:<p>
           <img src="${getImgURL('tutorial5-6.webp')}" alt="Extension Shape Manager Screenshot" width="100%"/>
           <p>Deleting a shape will reveal a confirmation popup - this is to avoid accidental deletions. To avoid this and delete the shape immediately, hold down Control/Command with the menu open, which will change the "Delete" option to "Delete now" instead.</p>
+          <p>NOTE: The shapes are stored in the browser's local storage, and are not saved to your account. This means that shapes will not be shared between users, and will not be present if you open the map on a different device or browser. I will try my best to improve this functionality in the future.</p>
 
           <h4>The New Selections</h4>
           <p>Tag/shape selections have also had some slight visual updates. Notably, the "Invert selection" and "Review selection" options have been given their own dedicated buttons:</p>
