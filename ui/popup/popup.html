@@ -8,10 +8,21 @@
 </head>
 <body>
   <main class="popup">
+    <section class="popup-main-title-section">
+      <div class="popup-main-title-content">
+        <div class="popup-main-title-text">
+          <h1 class="popup-main-title">Map Making App Reloaded</h1>
+          <p class="popup-version">version 1.000</p>
+        </div>
+        <img src="../../assets/icon128.png" alt="Map Making App Reloaded Logo" class="popup-logo" width="56" height="56">
+      </div>
+      <button type="button" id="tutorial-button" class="tutorial-button">Tutorial</button>
+    </section>
+
     <section class="popup-header">
-        <a class="popup-links" href="https://buymeacoffee.com/ccosine" target="_blank" rel="noopener noreferrer">If you like my work, support me! &#x1FA77;</a>
-        <h1 class="popup__title">Extension Settings</h1>
-        <button type="button" id="apply-button" class="primary-button" disabled>Apply changes</button>
+      <a class="popup-links" href="https://buymeacoffee.com/ccosine" target="_blank" rel="noopener noreferrer">If you like my work, support me! &#x1FA77;</a>
+      <h1 class="popup__title">Settings</h1>
+      <button type="button" id="apply-button" class="primary-button" disabled>Apply changes</button>
     </section>
     
     <section class="popup-section" aria-labelledby="section-custom-title">
@@ -71,7 +82,7 @@
       <div class="settings-toggle-list">
         <div class="toggle-control" data-role="homepage-toggle-row">
           <div class="toggle-control__text">
-            <span class="toggle-control__title" id="homepage-toggle-label">Homepage rework</span>
+            <span class="toggle-control__title" id="homepage-toggle-label">Homepage redesign</span>
             <span class="toggle-control__description" id="homepage-toggle-description">(BETA) A reworked version of the Map Making App homepage</span>
           </div>
           <label class="toggle-switch" for="homepage-toggle">
@@ -93,8 +104,8 @@
     </section>
 
     <section class="popup-section" aria-labelledby="section-shortcuts-title">
-      <header class="popup-section__header">
-        <h2 id="section-shortcuts-title">Keyboard Shortcuts</h2>
+      <header class="popup-header">
+        <h1 class="popup__title">Keybord Shortcuts</h1>
       </header>
       <ul class="shortcut-list" aria-label="Keyboard shortcuts">
         <li class="shortcut-list__item">
@@ -126,8 +137,20 @@
           <span class="shortcut-list__binding">Q</span>
         </li>
         <li class="shortcut-list__item">
+          <span class="shortcut-list__action">Save</span>
+          <span class="shortcut-list__binding">&#8984; S</span>
+        </li>
+        <li class="shortcut-list__item">
           <span class="shortcut-list__action">Search for tags</span>
           <span class="shortcut-list__binding">&#8984; F</span>
+        </li>
+        <li class="shortcut-list__item">
+          <span class="shortcut-list__action">Select everything</span>
+          <span class="shortcut-list__binding">&#8984; A</span>
+        </li>
+        <li class="shortcut-list__item">
+          <span class="shortcut-list__action">Deselect everything</span>
+          <span class="shortcut-list__binding">&#8984; D</span>
         </li>
       </ul>
       <div class="popup-footer-links" role="presentation">
