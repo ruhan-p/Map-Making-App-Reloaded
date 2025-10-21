@@ -2,13 +2,13 @@
   "name": "Map Making App Reloaded",
   "version": "1.0.0",
   "manifest_version": 3,
-  "description": "A total reworking of the layout and style of ReAnna's Map Making App. Includes some quality of life features and various improvements.",
+  "description": "A total reworking of the layout and style of ReAnna's Map Making App. Includes some QOL features and various improvements.",
   "permissions": ["storage", "scripting", "activeTab"],
   "host_permissions": ["https://map-making.app/*"],
   "icons": {
-    "16": "icon16.png",
-    "48": "icon48.png",
-    "128": "icon128.png"
+    "16": "assets/icon16.png",
+    "48": "assets/icon48.png",
+    "128": "assets/icon128.png"
   },
   "action": {
     "default_popup": "ui/popup/popup.html",
@@ -37,6 +37,7 @@
         "content/settings.js",
         "content/overview.js",
         "content/editor.js",
+        "content/tutorial.js",
         "content/extras.js",
         "ui/popup/theme.js"
       ]
@@ -64,7 +65,8 @@
         "inject/hook.js", 
         "styles/editor.css",
         "styles/root.css",
-        "lib/delaunator.js"
+        "lib/delaunator.js",
+        "assets/*"
       ],
       "matches": ["<all_urls>"]
     }
