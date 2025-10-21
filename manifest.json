@@ -2,7 +2,7 @@
   "name": "Map Making App Reloaded",
   "version": "1.0.0",
   "manifest_version": 3,
-  "description": "A visual and functional overhaul for the Map Making App webiste, implementing many QOL features to improve the overall user experience",
+  "description": "A visual and functional overhaul for the Map Making App site, implementing many QOL features to improve the overall user experience",
   "permissions": ["storage", "scripting", "activeTab"],
   "host_permissions": ["https://map-making.app/*"],
   "icons": {
