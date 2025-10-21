@@ -2,7 +2,7 @@
   "name": "Map Making App Reloaded",
   "version": "1.0.0",
   "manifest_version": 3,
-  "description": "A total reworking of the layout and style of ReAnna's Map Making App. Includes some QOL features and various improvements.",
+  "description": "An updated version of the Map Making App website, with multiple QOL features and improvements.",
   "permissions": ["storage", "scripting", "activeTab"],
   "host_permissions": ["https://map-making.app/*"],
   "icons": {
