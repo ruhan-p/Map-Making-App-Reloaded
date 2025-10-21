@@ -9,40 +9,10 @@ function __extHslByIndex(i) {
   const h = Math.round(((i * 47) % 360 + 360) % 360);
   return `hsl(${h} 64% 54%)`;
 }
-let __extProbe = document.getElementById('__ext_color_probe');
-if (!__extProbe) {
-  __extProbe = document.createElement('div');
-  __extProbe.id = '__ext_color_probe';
-  __extProbe.style.cssText =
-    'position:fixed;left:-100000px;top:-100000px;pointer-events:none;' +
-    'contain:paint style layout;';
-  document.body.appendChild(__extProbe);
-}
-
-function __extTextColorForBg(cssColor) {
-  try {
-    __extProbe.style.color = cssColor;
-    const rgb = getComputedStyle(__extProbe).color;
-    document.body.removeChild(el);
-    const m = rgb.match(/(\d+),\s*(\d+),\s*(\d+)/);
-    if (!m) return '#000';
-    const [r,g,b] = [parseInt(m[1],10), parseInt(m[2],10), parseInt(m[3],10)];
-    const L = 0.2126*(r/255)**2.2 + 0.7152*(g/255)**2.2 + 0.0722*(b/255)**2.2;
-    return L > 0.5 ? '#000' : '#fff';
-  } catch { return '#000'; }
-}
-
 function __extRgbCssFromArray(arr) {
   if (!Array.isArray(arr) || arr.length < 3) return null;
   const [r,g,b] = arr.map(n => Math.max(0, Math.min(255, Math.round(n))));
   return `rgb(${r}, ${g}, ${b})`;
-}
-function __extContrastTextForRgbArray(arr) {
-  if (!Array.isArray(arr) || arr.length < 3) return '#fff';
-  const [r,g,b] = arr.map(n => Math.max(0, Math.min(255, Math.round(n))));
-  const toLin = v => { v/=255; return v <= 0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4); };
-  const L = 0.2126*toLin(r) + 0.7152*toLin(g) + 0.0722*toLin(b);
-  return L > 0.5 ? '#000' : '#fff';
 }
 
 async function loadShapes() {
@@ -176,9 +146,7 @@ function makeShapeButton(shape, index) {
     bgCss = `hsl(${(index*47)%360} 64% 54%)`;
   }
 
-  const fgCss = Array.isArray(shape.color)
-    ? __extContrastTextForRgbArray(shape.color)
-    : __extTextColorForBg(bgCss);
+  const fgCss = __extGetContrastTextColor(Array.isArray(shape.color) ? shape.color : bgCss);
 
   try { li.style.setProperty('--shape-bg', bgCss); } catch {}
   li.style.color = fgCss;
@@ -231,7 +199,7 @@ function makeShapeButton(shape, index) {
           if (Array.isArray(rgb)) {
             shape.color = rgb;
             try { li.style.setProperty('--shape-bg', __extRgbCssFromArray(rgb)); } catch {}
-            li.style.color = __extContrastTextForRgbArray(rgb);
+            li.style.color = __extGetContrastTextColor(rgb);
             const shapes = await loadShapes();
             await saveShapes(shapes.map(s => s.id === shape.id ? { ...s, color: rgb } : s));
           }
