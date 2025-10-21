@@ -63,21 +63,6 @@
     };
     const mkRow = (labelContent, inputEl, options) => mkToggleRow(labelContent, inputEl, options);
 
-    const HIDE_STYLE_ID = 'ext-hide-user-style';
-    function applyHideUser(on) {
-      let style = document.getElementById(HIDE_STYLE_ID);
-      if (on) {
-        if (!style) {
-          style = document.createElement('style');
-          style.id = HIDE_STYLE_ID;
-          style.textContent = '.location-preview__description > .user, .location-preview__description-dot { display: none !important; }';
-          document.head.appendChild(style);
-        }
-      } else if (style) {
-        style.remove();
-      }
-    }
-
     function isLPFullscreen() {
       const fs = document.fullscreenElement;
       return !!(fs && (fs.matches?.('.location-preview__panorama') || fs.closest?.('.location-preview__panorama')));
@@ -589,25 +574,6 @@
       input.addEventListener('click', stop, true);
       input.addEventListener('change', () => writeJSON(key, !!input.checked), true);
       fsDisplay.appendChild(mkRow('Emphasise subdivision borders', input));
-    })();
-
-    (() => {
-      const key = 'hideUser';
-      const input = document.createElement('input');
-      input.type = 'checkbox';
-      input.checked = !!readJSON(key, false);
-      input.addEventListener('click', stop, true);
-      const update = () => { const on = !!input.checked; writeJSON(key, on); applyHideUser(on); };
-      input.addEventListener('change', update, true);
-      applyHideUser(input.checked);
-      window.addEventListener('storage', (ev) => {
-        if (ev && ev.key === key) {
-          const on = !!readJSON(key, false);
-          input.checked = on;
-          applyHideUser(on);
-        }
-      });
-      fsDisplay.appendChild(mkRow('Hide username', input));
     })();
 
     // --- Street View layer ---
