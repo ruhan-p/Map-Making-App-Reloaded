@@ -4,10 +4,10 @@ Map Making App Reloaded is a Chrome extension that provides a total rework of Re
 
 ## How do I get it?
 
-#### You can get the extension completely free on the Chrome Web Store:
+#### You can get the extension completely free on the Chrome Web Store, starting soon. Right now, it is only open to beta testers. If you want to beta test the extension, please fill out the form below:
 
 
-example.com
+[https://forms.gle/TfQRLHXhewc1av38A](https://forms.gle/TfQRLHXhewc1av38A)
 
 
 #### If you like my work, please feel free to donate - projects like these take while and it really helps small developers like me :)
