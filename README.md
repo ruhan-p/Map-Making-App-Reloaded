@@ -64,6 +64,15 @@ Map Making App Reloaded is a Chrome extension that provides a total rework of Re
 - Map styles cannot be added or changed with the extension enabled - you must disable the extension to do so.
 - There is currently no way to change or enable map layers (e.g. terrain, labels, etc) - you must disable the extension change these.
 
+## Installation
+#### You can install the extension from the Chrome Web Store, which is preferred. If you would like to install the unpacked version directly from the repo, follow the steps below:
+- Download the zipped file of the code
+- Uncompress the file to get the raw folder
+- Go to your chrome extensions manager page (chrome://extensions)
+- Click the button in the top left that says "Load unpacked"
+- Selected the entire folder when prompted
+- That's it! You should now see the extension in your browser
+
 #### Please note that the extension DOES NOT have access to the site's API. Thus, all data stored by the extension (e.g. panel positions, shapes, etc.) only exist in the site's local storage data. Thus, clearing site data will also clear the extension data. Additionally, extension data is not accessible across the user's account, but is saved locally on the browser. Thus, you will not be able to access data stored in the extension anywhere other than the specific machine/browser it was saved on.
 
 ## Contributing
