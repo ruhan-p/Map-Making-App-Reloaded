@@ -413,7 +413,7 @@
       fsBehaviour.appendChild(mkRow('Show location previews when hovering the map', input));
     })();
 
-      // --- Map behaviour ---
+      // --- Site functionality ---
     const fsFunctionality = document.createElement('fieldset');
     fsFunctionality.className = 'fieldset';
     fsFunctionality.innerHTML = '<legend class="fieldset__header">Site functionaity <span class="fieldset__divider"></span></legend>';
@@ -1019,8 +1019,8 @@
     })();
 
     container.appendChild(fsSelecting);
-    container.appendChild(fsFunctionality);
     container.appendChild(fsBehaviour);
+    container.appendChild(fsFunctionality);
     container.appendChild(fsDisplay);
     container.appendChild(fsSV);
   }
