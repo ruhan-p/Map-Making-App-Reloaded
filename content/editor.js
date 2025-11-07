@@ -10,6 +10,10 @@
   const DEFAULT_FEATURE_FLAGS = Object.freeze({
     panelLayoutEnabled: true
   });
+  const AUTO_SAVE_KEY = 'autoSave';
+  const AUTO_SAVE_DEFAULT = -1;
+  const SAVE_BUTTON_SELECTOR = '[data-qa="map-save"].button--primary';
+  const SAVE_BUTTON_FULL_SELECTOR = `${SELECTORS.meta} ${SAVE_BUTTON_SELECTOR}`;
 
   let featureFlags = { ...DEFAULT_FEATURE_FLAGS };
   let featureFlagsReady = false;
@@ -1733,6 +1737,117 @@
     }
   }
 
+  // MARK: ASV
+  // ------------------------------ auto save -------------------------------
+  const autoSaveManager = (() => {
+    let timerId = null;
+    let intervalSec = AUTO_SAVE_DEFAULT;
+    let metaEl = null;
+
+    function hasValidInterval() {
+      return Number.isFinite(intervalSec) && intervalSec > 0;
+    }
+
+    function normalizeSetting(value) {
+      const num = Number(value);
+      if (!Number.isFinite(num)) return AUTO_SAVE_DEFAULT;
+      if (num === -1) return -1;
+      if (num <= 0) return AUTO_SAVE_DEFAULT;
+      return Math.max(1, Math.round(num));
+    }
+
+    function readStoredInterval() {
+      try {
+        const raw = localStorage.getItem(AUTO_SAVE_KEY);
+        if (raw == null) return AUTO_SAVE_DEFAULT;
+        let parsed;
+        try { parsed = JSON.parse(raw); } catch { parsed = raw; }
+        return normalizeSetting(parsed);
+      } catch {
+        return AUTO_SAVE_DEFAULT;
+      }
+    }
+
+    function clearTimer() {
+      if (timerId) {
+        clearTimeout(timerId);
+        timerId = null;
+      }
+    }
+
+    function scheduleNext() {
+      clearTimer();
+      if (!hasValidInterval()) return;
+      timerId = window.setTimeout(runAutoSave, intervalSec * 1000);
+    }
+
+    function findSaveButton() {
+      if (metaEl?.isConnected) {
+        const btn = metaEl.querySelector(SAVE_BUTTON_SELECTOR);
+        if (btn) return btn;
+      }
+      return document.querySelector(SAVE_BUTTON_FULL_SELECTOR);
+    }
+
+    function runAutoSave() {
+      timerId = null;
+      if (!hasValidInterval()) return;
+      const btn = findSaveButton();
+      if (!btn || isDisabled(btn)) {
+        scheduleNext();
+        return;
+      }
+      try { btn.click(); } catch {}
+      scheduleNext();
+    }
+
+    function applyInterval(nextValue) {
+      intervalSec = normalizeSetting(nextValue);
+      scheduleNext();
+    }
+
+    function handleStorageEvent(event) {
+      if (!event || event.key !== AUTO_SAVE_KEY) return;
+      if (event.newValue == null) {
+        applyInterval(AUTO_SAVE_DEFAULT);
+        return;
+      }
+      try {
+        applyInterval(JSON.parse(event.newValue));
+      } catch {
+        applyInterval(event.newValue);
+      }
+    }
+
+    function handleSettingEvent(ev) {
+      if (ev?.detail?.key !== AUTO_SAVE_KEY) return;
+      applyInterval(ev.detail.value);
+    }
+
+    function handleManualClick(ev) {
+      if (ev?.isTrusted === false) return;
+      if (!hasValidInterval()) return;
+      const target = ev?.target;
+      if (!target || typeof target.closest !== 'function') return;
+      const btn = target.closest(SAVE_BUTTON_FULL_SELECTOR);
+      if (!btn || isDisabled(btn)) return;
+      scheduleNext();
+    }
+
+    window.addEventListener('storage', handleStorageEvent);
+    window.addEventListener('ext:setting', handleSettingEvent);
+    document.addEventListener('click', handleManualClick, true);
+
+    intervalSec = readStoredInterval();
+    scheduleNext();
+
+    return {
+      attachMeta(el) {
+        metaEl = el || null;
+      }
+    };
+  })();
+
   // MARK: STP
   // ------------------------------ setups ----------------------------------
   const setupMap = (el) => {
@@ -1788,6 +1903,8 @@
       } catch {}
       syncDefaultLayoutControlsPosition();
     }
+
+    autoSaveManager.attachMeta(el);
 
     if (!window.__extMetaClickListenerBound) {
       window.__extMetaClickListenerBound = true;

@@ -122,6 +122,13 @@
       } catch {}
       try { window.dispatchEvent(new CustomEvent('ext:setting', { detail: { key, value: val }})); } catch {}
     };
+    const normalizeAutoSaveValue = (value) => {
+      const num = Number(value);
+      if (!Number.isFinite(num)) return -1;
+      if (num === -1) return -1;
+      if (num <= 0) return -1;
+      return Math.max(1, Math.round(num));
+    };
 
     function getMapStyleCookie() {
       const name = 'mapstyle=';
@@ -391,6 +398,54 @@
 
     })().catch(err => console.error('Failed to build map style settings:', err));
 
+    // --- Map behaviour ---
+    const fsBehaviour = document.createElement('fieldset');
+    fsBehaviour.className = 'fieldset';
+    fsBehaviour.innerHTML = '<legend class="fieldset__header">Map behaviour <span class="fieldset__divider"></span></legend>';
+
+    (() => {
+      const key = 'previewWindow';
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.checked = !!readJSON(key, false);
+      input.addEventListener('click', stop, true);
+      input.addEventListener('change', () => writeJSON(key, !!input.checked), true);
+      fsBehaviour.appendChild(mkRow('Show location previews when hovering the map', input));
+    })();
+
+      // --- Map behaviour ---
+    const fsFunctionality = document.createElement('fieldset');
+    fsFunctionality.className = 'fieldset';
+    fsFunctionality.innerHTML = '<legend class="fieldset__header">Site functionaity <span class="fieldset__divider"></span></legend>';
+
+    (() => {
+      const key = 'autoSave';
+      const sel = document.createElement('select');
+      sel.innerHTML = [
+        '<option value=-1>Off</option>',
+        '<option value=30>30 seconds</option>',
+        '<option value=60>1 minute</option>',
+        '<option value=300>5 minutes</option>',
+        '<option value=900>15 minutes</option>'
+      ].join('');
+      const storedRaw = readJSON(key, -1);
+      const normalized = normalizeAutoSaveValue(storedRaw);
+      if (normalized !== storedRaw) {
+        writeJSON(key, normalized);
+      }
+      sel.value = String(normalized);
+      sel.addEventListener('click', stop, true);
+      sel.addEventListener('change', () => {
+        const nextVal = normalizeAutoSaveValue(sel.value);
+        writeJSON(key, nextVal);
+      }, true);
+      const wrap = document.createElement('div');
+      wrap.className = 'settings-popup__item settings-popup__select';
+      wrap.appendChild(document.createTextNode('Autosave: '));
+      wrap.appendChild(sel);
+      fsFunctionality.appendChild(wrap);
+    })();
+
     // --- Selecting new locations ---
     const fsSelecting = document.createElement('fieldset');
     fsSelecting.className = 'fieldset';
@@ -506,21 +561,6 @@
       a.textContent = 'Pano ID';
       const row = mkRow(['Use ', a, ' locations by default'], input);
       fsSelecting.appendChild(row);
-    })();
-
-    // --- Map behaviour ---
-    const fsBehaviour = document.createElement('fieldset');
-    fsBehaviour.className = 'fieldset';
-    fsBehaviour.innerHTML = '<legend class="fieldset__header">Map behaviour <span class="fieldset__divider"></span></legend>';
-
-    (() => {
-      const key = 'previewWindow';
-      const input = document.createElement('input');
-      input.type = 'checkbox';
-      input.checked = !!readJSON(key, false);
-      input.addEventListener('click', stop, true);
-      input.addEventListener('change', () => writeJSON(key, !!input.checked), true);
-      fsBehaviour.appendChild(mkRow('Show location previews when hovering the map', input));
     })();
 
     // --- Display ---
@@ -979,6 +1019,7 @@
     })();
 
     container.appendChild(fsSelecting);
+    container.appendChild(fsFunctionality);
     container.appendChild(fsBehaviour);
     container.appendChild(fsDisplay);
     container.appendChild(fsSV);

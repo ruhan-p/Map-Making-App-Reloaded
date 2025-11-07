@@ -1613,7 +1613,7 @@ body.ext-proxy-menu-active [data-radix-popper-content-wrapper] {
 .ext-floating-layout .fieldset__header {
   font-weight: bold;
   color: var(--ext-card-fg);
-  padding: 4px 0px 8px 0px;
+  padding: 12px 0px;
 }
 .ext-floating-layout .fieldset__divider {
   background: var(--ext-card-fg);
