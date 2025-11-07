@@ -71,7 +71,7 @@
     if (isLPFullscreen()) {
       const section = document.createElement('fieldset');
       section.className = 'settings-popup__section';
-      section.innerHTML = '<legend class="fieldset__header">Street View<span class="fieldset__divider"></span></legend>';
+      section.innerHTML = '<legend class="fieldset__header"><span class="fieldset__divider"></span>Street View<span class="fieldset__divider"></span></legend>';
       section.style.border = 'none';
 
       const mkLPRow = (key, label) => {
@@ -122,13 +122,6 @@
       } catch {}
       try { window.dispatchEvent(new CustomEvent('ext:setting', { detail: { key, value: val }})); } catch {}
     };
-    const normalizeAutoSaveValue = (value) => {
-      const num = Number(value);
-      if (!Number.isFinite(num)) return -1;
-      if (num === -1) return -1;
-      if (num <= 0) return -1;
-      return Math.max(1, Math.round(num));
-    };
 
     function getMapStyleCookie() {
       const name = 'mapstyle=';
@@ -157,7 +150,7 @@
     (() => {
       const baseMap = document.createElement('fieldset');
       baseMap.className = 'fieldset';
-      baseMap.innerHTML = '<legend class="fieldset__header">Base map<span class="fieldset__divider"></span></legend>';
+      baseMap.innerHTML = '<legend class="fieldset__header"><span class="fieldset__divider"></span>Base map<span class="fieldset__divider"></span></legend>';
       const wrap = document.createElement('div');
       wrap.className = 'settings-popup__item settings-popup__select';
       const GROUP = 'ext-mapstyle';
@@ -231,7 +224,7 @@
 
     const fsMapStyles = document.createElement('fieldset');
     fsMapStyles.className = 'fieldset';
-    fsMapStyles.innerHTML = '<legend class="fieldset__header">Map styles<span class="fieldset__divider"></span></legend>';
+    fsMapStyles.innerHTML = '<legend class="fieldset__header"><span class="fieldset__divider"></span>Map styles<span class="fieldset__divider"></span></legend>';
     container.appendChild(fsMapStyles);
 
     (async () => {
@@ -401,7 +394,7 @@
     // --- Map behaviour ---
     const fsBehaviour = document.createElement('fieldset');
     fsBehaviour.className = 'fieldset';
-    fsBehaviour.innerHTML = '<legend class="fieldset__header">Map behaviour <span class="fieldset__divider"></span></legend>';
+    fsBehaviour.innerHTML = '<legend class="fieldset__header"><span class="fieldset__divider"></span>Map behaviour <span class="fieldset__divider"></span></legend>';
 
     (() => {
       const key = 'previewWindow';
@@ -416,7 +409,7 @@
       // --- Site functionality ---
     const fsFunctionality = document.createElement('fieldset');
     fsFunctionality.className = 'fieldset';
-    fsFunctionality.innerHTML = '<legend class="fieldset__header">Site functionaity <span class="fieldset__divider"></span></legend>';
+    fsFunctionality.innerHTML = '<legend class="fieldset__header"><span class="fieldset__divider"></span>Site functionaity <span class="fieldset__divider"></span></legend>';
 
     (() => {
       const key = 'autoSave';
@@ -428,17 +421,16 @@
         '<option value=300>5 minutes</option>',
         '<option value=900>15 minutes</option>'
       ].join('');
-      const storedRaw = readJSON(key, -1);
-      const normalized = normalizeAutoSaveValue(storedRaw);
-      if (normalized !== storedRaw) {
-        writeJSON(key, normalized);
-      }
-      sel.value = String(normalized);
+
+      const storedValue = readJSON(key, -1);
+      sel.value = String(storedValue);
+
       sel.addEventListener('click', stop, true);
       sel.addEventListener('change', () => {
-        const nextVal = normalizeAutoSaveValue(sel.value);
+        const nextVal = Number(sel.value);
         writeJSON(key, nextVal);
       }, true);
+
       const wrap = document.createElement('div');
       wrap.className = 'settings-popup__item settings-popup__select';
       wrap.appendChild(document.createTextNode('Autosave: '));
@@ -449,7 +441,7 @@
     // --- Selecting new locations ---
     const fsSelecting = document.createElement('fieldset');
     fsSelecting.className = 'fieldset';
-    fsSelecting.innerHTML = '<legend class="fieldset__header">Selecting new locations <span class="fieldset__divider"></span></legend>';
+    fsSelecting.innerHTML = '<legend class="fieldset__header"><span class="fieldset__divider"></span>Selecting new locations <span class="fieldset__divider"></span></legend>';
 
     (() => {
       const key = 'pointAlongRoad';
@@ -566,7 +558,7 @@
     // --- Display ---
     const fsDisplay = document.createElement('fieldset');
     fsDisplay.className = 'fieldset';
-    fsDisplay.innerHTML = '<legend class="fieldset__header">Display <span class="fieldset__divider"></span></legend>';
+    fsDisplay.innerHTML = '<legend class="fieldset__header"><span class="fieldset__divider"></span>Display <span class="fieldset__divider"></span></legend>';
 
     (() => {
       const key = 'markerStyle';
@@ -619,7 +611,7 @@
     // --- Street View layer ---
     const fsSV = document.createElement('fieldset');
     fsSV.className = 'fieldset';
-    fsSV.innerHTML = '<legend class="fieldset__header">Street View layer <span class="fieldset__divider"></span></legend>';
+    fsSV.innerHTML = '<legend class="fieldset__header"><span class="fieldset__divider"></span>Street View layer <span class="fieldset__divider"></span></legend>';
 
     (() => {
       const key = 'svPanoramas';

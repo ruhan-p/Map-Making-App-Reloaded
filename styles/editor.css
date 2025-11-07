@@ -1612,11 +1612,14 @@ body.ext-proxy-menu-active [data-radix-popper-content-wrapper] {
 }
 .ext-floating-layout .fieldset__header {
   font-weight: bold;
+  flex-direction: column;
+  align-items: start !important;
+  padding: 20px 4px;
+  gap: 12px;
   color: var(--ext-card-fg);
-  padding: 12px 0px;
 }
 .ext-floating-layout .fieldset__divider {
-  background: var(--ext-card-fg);
+  background: var(--ext-hl2);
 }
 .settings-popup__item {
   padding: 4px;

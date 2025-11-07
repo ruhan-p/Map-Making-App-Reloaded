@@ -1744,107 +1744,91 @@
     let intervalSec = AUTO_SAVE_DEFAULT;
     let metaEl = null;
 
-    function hasValidInterval() {
-      return Number.isFinite(intervalSec) && intervalSec > 0;
-    }
-
-    function normalizeSetting(value) {
-      const num = Number(value);
-      if (!Number.isFinite(num)) return AUTO_SAVE_DEFAULT;
-      if (num === -1) return -1;
-      if (num <= 0) return AUTO_SAVE_DEFAULT;
-      return Math.max(1, Math.round(num));
-    }
-
-    function readStoredInterval() {
+    const readStoredInterval = () => {
       try {
         const raw = localStorage.getItem(AUTO_SAVE_KEY);
-        if (raw == null) return AUTO_SAVE_DEFAULT;
-        let parsed;
-        try { parsed = JSON.parse(raw); } catch { parsed = raw; }
-        return normalizeSetting(parsed);
+        const value = raw ? JSON.parse(raw) : AUTO_SAVE_DEFAULT;
+        return typeof value === 'number' ? value : AUTO_SAVE_DEFAULT;
       } catch {
         return AUTO_SAVE_DEFAULT;
       }
-    }
+    };
 
-    function clearTimer() {
+    const clearTimer = () => {
       if (timerId) {
         clearTimeout(timerId);
         timerId = null;
       }
-    }
+    };
 
-    function scheduleNext() {
+    const scheduleNext = () => {
       clearTimer();
-      if (!hasValidInterval()) return;
-      timerId = window.setTimeout(runAutoSave, intervalSec * 1000);
-    }
+      if (intervalSec > 0) {
+        timerId = window.setTimeout(runAutoSave, intervalSec * 1000);
+      }
+    };
 
-    function findSaveButton() {
+    const findSaveButton = () => {
       if (metaEl?.isConnected) {
         const btn = metaEl.querySelector(SAVE_BUTTON_SELECTOR);
         if (btn) return btn;
       }
       return document.querySelector(SAVE_BUTTON_FULL_SELECTOR);
-    }
+    };
 
-    function runAutoSave() {
+    const runAutoSave = () => {
       timerId = null;
-      if (!hasValidInterval()) return;
+      if (intervalSec <= 0) return;
+
       const btn = findSaveButton();
       if (!btn || isDisabled(btn)) {
         scheduleNext();
         return;
       }
-      try { btn.click(); } catch {}
-      scheduleNext();
-    }
-
-    function applyInterval(nextValue) {
-      intervalSec = normalizeSetting(nextValue);
-      scheduleNext();
-    }
-
-    function handleStorageEvent(event) {
-      if (!event || event.key !== AUTO_SAVE_KEY) return;
-      if (event.newValue == null) {
-        applyInterval(AUTO_SAVE_DEFAULT);
-        return;
-      }
       try {
-        applyInterval(JSON.parse(event.newValue));
-      } catch {
-        applyInterval(event.newValue);
-      }
-    }
+        btn.click();
+      } catch {}
+      scheduleNext();
+    };
 
-    function handleSettingEvent(ev) {
+    const applyInterval = (value) => {
+      const num = Number(value);
+      intervalSec = Number.isFinite(num) ? num : AUTO_SAVE_DEFAULT;
+      scheduleNext();
+    };
+
+    const handleStorageEvent = (event) => {
+      if (event?.key !== AUTO_SAVE_KEY) return;
+      try {
+        const value = event.newValue === null ? AUTO_SAVE_DEFAULT : JSON.parse(event.newValue);
+        applyInterval(value);
+      } catch {
+        applyInterval(AUTO_SAVE_DEFAULT);
+      }
+    };
+
+    const handleSettingEvent = (ev) => {
       if (ev?.detail?.key !== AUTO_SAVE_KEY) return;
       applyInterval(ev.detail.value);
-    }
+    };
 
-    function handleManualClick(ev) {
-      if (ev?.isTrusted === false) return;
-      if (!hasValidInterval()) return;
-      const target = ev?.target;
-      if (!target || typeof target.closest !== 'function') return;
-      const btn = target.closest(SAVE_BUTTON_FULL_SELECTOR);
+    const handleManualClick = (ev) => {
+      if (ev.isTrusted === false || intervalSec <= 0) return;
+      const btn = ev.target?.closest(SAVE_BUTTON_FULL_SELECTOR);
       if (!btn || isDisabled(btn)) return;
       scheduleNext();
-    }
+    };
 
     window.addEventListener('storage', handleStorageEvent);
     window.addEventListener('ext:setting', handleSettingEvent);
     document.addEventListener('click', handleManualClick, true);
 
-    intervalSec = readStoredInterval();
-    scheduleNext();
+    applyInterval(readStoredInterval());
 
     return {
       attachMeta(el) {
         metaEl = el || null;
-      }
+      },
     };
   })();
 
