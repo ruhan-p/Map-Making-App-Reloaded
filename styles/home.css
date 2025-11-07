@@ -306,7 +306,7 @@ body.ext-homepage-rework select:focus {
 .ext-map-card--solid {
     aspect-ratio: 1/0.2;
 }
-.ext-map-card:hover { transform: scale(1.02); }
+.ext-map-card:hover { transform: scale(1.02); backface-visibility: hidden; }
 .ext-map-card.is-loading { opacity: 0; }
 .ext-map-card.is-archived {
     aspect-ratio: unset;
@@ -564,7 +564,7 @@ body.ext-homepage-rework select:focus {
     max-width: 800px;
     max-height: 80vh;
 }
-.ext-changelog-modal-wrapper.visible .ext-changelog-modal { transform: scale(1); }
+.ext-changelog-modal-wrapper.visible .ext-changelog-modal { transform: scale(1); backface-visibility: hidden; }
 
 .ext-changelog-modal__header {
     display: flex;

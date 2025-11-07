@@ -70,6 +70,7 @@ button {
 .tutorial-button:hover {
   filter: brightness(1.4);
   transform: scale(1.05);
+  backface-visibility: hidden;
 }
 
 .tutorial-button:focus-visible {
@@ -167,6 +168,7 @@ button {
 .primary-button:not(:disabled):hover {
   filter: brightness(1.4);
   transform: scale(1.05);
+  backface-visibility: hidden;
 }
 
 .save-theme-container {
@@ -254,6 +256,7 @@ button {
 .theme-button:hover {
   filter: brightness(1.4);
   transform: scale(1.05);
+  backface-visibility: hidden;
 }
 
 .theme-button.is-selected {

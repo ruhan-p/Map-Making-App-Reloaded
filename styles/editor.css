@@ -46,6 +46,7 @@ button, .button {
 button:hover:not(:disabled, .tag__button, .compass-control__link, .ext-mode-buttons *, .ext-edit-list-name-btn, .ext-collapse-list-btn), .context-menu__item:hover:not([data-disabled]) {
   filter: brightness(1.4);
   transform: scale(1.05);
+  backface-visibility: hidden;
 }
 
 button:disabled, .button:disabled {
@@ -629,6 +630,7 @@ section.map-embed > div:first-child > div > div {
 .selection-row__label:hover {
   filter: brightness(1.4);
   transform: scale(1.02);
+  backface-visibility: hidden;
 }
 .selection-row__label .ext-label-text-wrapper {
   white-space: nowrap;
@@ -1357,6 +1359,7 @@ section.map-embed > div:first-child > div > div {
 .ext-mode-group:has(.ext-mode-buttons > .button[data-state="on"]:hover) .ext-mode-indicator,
 :is(:fullscreen, .location-preview__panorama:fullscreen, :-webkit-full-screen) .ext-fs-mode-panel:has(.ext-mode-buttons > .button[data-state="on"]:hover) .ext-mode-indicator {
   transform: scale(1.06);
+  backface-visibility: hidden;
 }
 .icon-button {
   background: none !important;
@@ -1413,7 +1416,7 @@ animation-direction: alternate;
   pointer-events: auto;
 }
 
-.ext-resize-handle:hover { transform: scale(1.05); }
+.ext-resize-handle:hover { transform: scale(1.05); backface-visibility: hidden; }
 .ext-resize-br { right: 4px;  bottom: 4px;  cursor: nwse-resize; }
 .ext-resize-bl { left: 4px;   bottom: 4px;  cursor: nesw-resize; }
 .ext-resize-tr { right: 4px;  top: 4px;     cursor: nesw-resize; }
@@ -2091,6 +2094,7 @@ button[aria-label="Copy link - hold Shift to copy without tags"] { border-radius
 }
 .duplicate-item__thumbnail:hover {
   transform: scale(1.03);
+  backface-visibility: hidden;
 }
 .duplicate-item__thumbnail img {
   height: 100% !important;
