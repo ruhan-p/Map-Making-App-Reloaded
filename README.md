@@ -52,6 +52,7 @@ Map Making App Reloaded is a Chrome extension that provides a total rework of Re
 - When adding tags to locations, clicking anywhere on the tag will add it (instead of the small "+" button)
 - Tag count moved to a small badge in the corner of each tag for less confusion
 - Notifications to inform users of certain actions
+- Theme-relevant background color (instead of the default white)
 
 #### Early Beta Features:
 - Randomized terrain generation for map cards on the homepage, allowing users to distinguish maps by their general landscape
