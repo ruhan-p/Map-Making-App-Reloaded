@@ -1,6 +1,6 @@
 {
   "name": "Map Making App Reloaded",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "manifest_version": 3,
   "description": "A visual and functional overhaul for the Map Making App site, implementing many QOL features to improve the overall user experience",
   "permissions": ["storage", "scripting", "activeTab"],
