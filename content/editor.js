@@ -2426,75 +2426,74 @@
     const controls = Array.from(root.querySelectorAll('.embed-controls__control'));
     if (!controls.length) return;
 
-    const findBtn = (label) => root.querySelector(`.embed-controls__control button[aria-label="${label}"]`);
+    const findContainerWithBtn = (label) => {
+      const b = root.querySelector(`.embed-controls__control button[aria-label="${label}"]`);
+      return b?.closest('.embed-controls__control');
+    };
 
     const pano = root.querySelector(SELECTORS.locprevPanorama) || root;
-    let panels = pano.querySelector('.ext-lp-panels') || root.querySelector('.ext-lp-panels');
+    let panels = pano.querySelector('.ext-lp-panels');
     if (!panels) {
       panels = document.createElement('div');
       panels.className = 'ext-lp-panels';
       pano.appendChild(panels);
     } else if (panels.parentElement !== pano) {
-      try { pano.appendChild(panels); } catch {}
+      try {
+        pano.appendChild(panels);
+      } catch {}
     }
+
     let p1 = panels.querySelector('.ext-lp-panel--p1');
-    if (!p1) { p1 = document.createElement('div'); p1.className = 'ext-lp-panel ext-lp-panel--p1'; panels.appendChild(p1); }
+    if (!p1) {
+      p1 = document.createElement('div');
+      p1.className = 'ext-lp-panel ext-lp-panel--p1';
+      panels.appendChild(p1);
+    }
+
     let p2 = panels.querySelector('.ext-lp-panel--p2');
-    if (!p2) { p2 = document.createElement('div'); p2.className = 'ext-lp-panel ext-lp-panel--p2'; panels.appendChild(p2); }
+    if (!p2) {
+      p2 = document.createElement('div');
+      p2.className = 'ext-lp-panel ext-lp-panel--p2';
+      panels.appendChild(p2);
+    }
 
-    const makeProxyBtn = (origBtn) => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'ext-lp-btn';
-      btn.innerHTML = origBtn.innerHTML || origBtn.textContent || '';
-      btn.title = origBtn.getAttribute('aria-label') || '';
-      btn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); origBtn.click(); }, true);
-      return btn;
-    };
-
+    // Panel 1: Horizontal row layout
     p1.innerHTML = '';
-    const row = document.createElement('div');
-    row.className = 'ext-lp-row';
-    row.style.display = 'flex';
-    row.style.gap = '8px';
 
-    ['Open in maps', 'Copy link - hold Shift to copy without tags','Toggle fullscreen (F)'].forEach(lbl => {
-      const b = findBtn(lbl);
-      if (b) {
-        const proxy = makeProxyBtn(b);
-        row.appendChild(proxy);
-        b.closest('.embed-controls__control')?.classList.add('ext-hidden-orig-control');
+    ['Open in maps', 'Copy link - hold Shift to copy without tags', 'Toggle fullscreen (F)'].forEach(lbl => {
+      const container = findContainerWithBtn(lbl);
+      if (container) {
+        p1.appendChild(container);
       }
     });
 
-    p1.appendChild(row);
-
+    // Panel 2: Grid layout
     p2.innerHTML = '';
-    const stackZoom = document.createElement('div');
-    stackZoom.className = 'ext-lp-stack';
-    stackZoom.setAttribute('data-span','3');
-    ['Zoom in','Reset zoom','Zoom out'].forEach(lbl => {
-      const b = findBtn(lbl);
-      if (b) {
-        const proxy = makeProxyBtn(b);
-        stackZoom.appendChild(proxy);
-        b.closest('.embed-controls__control')?.classList.add('ext-hidden-orig-control');
-      }
-    });
-    p2.appendChild(stackZoom);
 
-    const stackMove = document.createElement('div');
-    stackMove.className = 'ext-lp-stack';
-    stackMove.setAttribute('data-span','3');
-    ['Jump forward 100 metres (Hotkey: 4)','Jump backward 100 metres (Hotkey: 3)','Return to spawn (R)'].forEach(lbl => {
-      const b = findBtn(lbl);
-      if (b) {
-        const proxy = makeProxyBtn(b);
-        stackMove.appendChild(proxy);
-        b.closest('.embed-controls__control')?.classList.add('ext-hidden-orig-control');
+    const btns = [{
+      label: 'Zoom in',
+      gridRow: '1',
+      gridColumn: '2'
+    },
+    {
+      label: 'Return to spawn (R)',
+      gridRow: '1',
+      gridColumn: '1'
+    }];
+
+    btns.forEach(config => {
+      const container = findContainerWithBtn(config.label);
+      if (container) {
+        if (config.label === 'Return to spawn (R)') {
+          const jumpbtns = findContainerWithBtn('Jump forward 100 metres (Hotkey: 4)');
+          container.appendChild(jumpbtns);
+        };
+        container.style.gridRow = config.gridRow;
+        container.style.gridColumn = config.gridColumn;
+        p2.appendChild(container);
       }
+
     });
-    p2.appendChild(stackMove);
 
     lpProcessed.add(lp);
 

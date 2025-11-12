@@ -1210,24 +1210,29 @@ section.map-embed > div:first-child > div > div {
   pointer-events: none;
 }
 .ext-lp-panel {
-  padding: 6px;
-  display: grid;
-  gap: 6px;
+  padding: 8px 12px;
+  gap: 4px;
   position: absolute;
   pointer-events: auto;
 }
-.ext-lp-panel--p2 {
-  grid-template-columns: repeat(2, 56px);
-  grid-auto-rows: 40px;
-  order: 1;
-  bottom: 0;
-  left: 0;
-}
 .ext-lp-panel--p1 {
+  display: flex;
   order: 2;
   top: 0;
   right: 0;
 }
+.ext-lp-panel--p2 {
+  display: inline-grid;
+  grid-template-columns: repeat(2, auto); 
+  order: 1;
+  bottom: 0;
+  left: 0;
+}
+
+.map-links-control {
+  gap: 4px;
+}
+
 .ext-lp-panel .ext-lp-btn {
   width: 56px; height: 40px;
   display: inline-flex; align-items: center; justify-content: center;
@@ -1241,6 +1246,17 @@ section.map-embed > div:first-child > div > div {
 .ext-lp-stack { display: flex; flex-direction: column; gap: 4px; }
 .ext-lp-stack[data-span="2"] { grid-row: span 2; }
 .ext-lp-stack[data-span="3"] { grid-row: span 3; }
+
+.ext-lp-panel .embed-controls__control, .ext-lp-panel .map-control--button {
+  position: static;
+  margin: 0 !important;
+}
+
+.ext-lp-panel .embed-controls__control button {
+  width: 60px;
+  padding: 0 !important;
+  margin: 4px 0px !important;
+}
 
 .select__input {
   border-radius: var(--ext-radius) !important;
@@ -1715,11 +1731,6 @@ body.ext-proxy-menu-active [data-radix-popper-content-wrapper] {
   border-right: 1px solid var(--ext-card-fg) !important;
   border-bottom: 1px solid var(--ext-card-fg) !important;
 }
-button[aria-label="Zoom in"], button[aria-label="Draw a polygon selection"] { border-radius: var(--ext-radius) var(--ext-radius) 0 0 !important; }
-button[aria-label="Zoom out"], button[aria-label="Draw a rectangle selection"] { border-radius: 0 0 var(--ext-radius) var(--ext-radius) !important; }
-button[aria-label="Reset zoom"] { border-radius: 0 !important; }
-button[aria-label="Open in maps"] { border-radius: var(--ext-radius) 0 0 var(--ext-radius) !important; }
-button[aria-label="Copy link - hold Shift to copy without tags"] { border-radius: 0 var(--ext-radius) var(--ext-radius) 0 !important; }
 .map-control--button.white button[aria-pressed="true"] {
   background: var(--ext-red2) !important;
   box-shadow: inset 0 0 0 2px var(--ext-red);

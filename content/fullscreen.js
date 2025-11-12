@@ -26,34 +26,22 @@
   // Reuse only the mode buttons inside a dedicated FS overlay panel
   function moveModeButtonsInto(host) {
     if (!host) return;
-    let btns = MButtons.node && MButtons.node.isConnected ? MButtons.node : document.querySelector('.ext-mode-group .ext-mode-buttons');
-    if (!btns) return;
+    let modegroup = MButtons.node && MButtons.node.isConnected ? MButtons.node : document.querySelector('.ext-mode-group');
+    if (!modegroup) return;
     if (!MButtons.node) {
-      MButtons.node = btns;
-      MButtons.origParent = btns.parentNode || null;
-      MButtons.origNext = btns.nextSibling || null;
-      MButtons.placeholder = document.createComment('ext-mode-buttons-ph');
+      MButtons.node = modegroup;
+      MButtons.origParent = modegroup.parentNode || null;
+      MButtons.origNext = modegroup.nextSibling || null;
       try { MButtons.origParent && MButtons.origParent.insertBefore(MButtons.placeholder, MButtons.origNext); } catch {}
     }
 
-    let panel = MButtons.panel && MButtons.panel.isConnected ? MButtons.panel : host.querySelector('.ext-lp-panel--2');
-    console.log(panel);
+    let panel = MButtons.panel && MButtons.panel.isConnected ? MButtons.panel : host.querySelector('.ext-lp-panel--p2');
     if (!panel) return;
     MButtons.panel = panel;
 
-    if (btns.parentElement !== panel) {
-      try { panel.appendChild(btns); } catch {}
+    if (modegroup.parentElement !== panel) {
+      try { panel.appendChild(modegroup); syncFSModeIndicator(); } catch {}
     }
-
-    try {
-      let ind = panel.querySelector('.ext-mode-indicator');
-      if (!ind) {
-        ind = document.createElement('div');
-        ind.className = 'ext-mode-indicator';
-        panel.insertBefore(ind, panel.firstChild);
-      }
-      try { syncFSModeIndicator(); } catch {}
-    } catch {}
   }
 
   function restoreModeButtons() {
@@ -64,9 +52,6 @@
       if (parent && parent.isConnected) {
         if (next && next.parentNode === parent) parent.insertBefore(MButtons.node, next);
         else parent.appendChild(MButtons.node);
-      }
-      if (MButtons.panel && MButtons.panel.isConnected) {
-        try { MButtons.panel.remove(); } catch {}
       }
     } catch {}
     try { MButtons.placeholder && MButtons.placeholder.remove && MButtons.placeholder.remove(); } catch {}
@@ -151,7 +136,6 @@
       LP.node = panels;
       LP.origParent = panels.parentNode || null;
       LP.origNext = panels.nextSibling || null;
-      LP.placeholder = document.createComment('ext-lp-panels-ph');
       try { LP.origParent && LP.origParent.insertBefore(LP.placeholder, LP.origNext); } catch {}
     }
 
@@ -168,7 +152,6 @@
       DU.node = ui;
       DU.origParent = ui.parentNode || null;
       DU.origNext = ui.nextSibling || null;
-      DU.placeholder = document.createComment('ext-drag-ui-ph');
       try { DU.origParent && DU.origParent.insertBefore(DU.placeholder, DU.origNext); } catch {}
     }
     if (ui.parentElement !== host) {
