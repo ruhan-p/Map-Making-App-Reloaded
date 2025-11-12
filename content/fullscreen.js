@@ -1,14 +1,12 @@
 // === EXT FULL SCREEN MODULE (extracted) ===
 (() => {
-  const MAP_SEL = '.map-embed';
   const PANO_FS_SEL = '.location-preview__panorama';
 
   const S = { active:false, wrap:null, map:null, origParent:null, origNext:null };
   const LP = { node:null, placeholder:null, origParent:null, origNext:null };
   const DU = { node:null, placeholder:null, origParent:null, origNext:null };
   const MButtons = { node:null, placeholder:null, origParent:null, origNext:null, panel:null };
-
-  function q(sel, root=document) { try { return root.querySelector(sel); } catch { return null; } }
+  const LPMeta = { node:null, origParent:null, origNext:null, prevStyles:null };
 
   function ensureWrap(host) {
     if (S.wrap && S.wrap.isConnected) return S.wrap;
@@ -18,9 +16,27 @@
     S.wrap = w; return w;
   }
 
-  function moveLPTagsInto(host) {
+  function moveLPMetaInto(host) {
     if (!host) return;
+    const meta = document.querySelector('.location-preview__meta');
+    if (!meta) return;
 
+    if (!LPMeta.node) {
+      LPMeta.node = meta;
+      LPMeta.origParent = meta.parentNode || null;
+      LPMeta.origNext = meta.nextSibling || null;
+      LPMeta.prevStyles = {
+        position: meta.style.position || '',
+        zIndex: meta.style.zIndex || ''
+      };
+    }
+
+    meta.style.zIndex = 'calc(var(--z-lppanels) - 1)';
+    meta.style.position = 'fixed';
+
+    if (meta.parentElement !== host) {
+      try { host.appendChild(meta); } catch {}
+    }
   }
 
   // Reuse only the mode buttons inside a dedicated FS overlay panel
@@ -87,7 +103,7 @@
   }
 
   function moveMapIntoMini(host) {
-    const map = q(MAP_SEL);
+    const map = document.querySelector('.map-embed');
     if (!map || !host) return false;
     if (S.map === map && S.active) return true;
     if (!S.active) {
@@ -173,6 +189,37 @@
     DU.placeholder = null; DU.node = null; DU.origParent = null; DU.origNext = null;
   }
 
+  function restoreLPMeta() {
+    const meta = LPMeta.node && LPMeta.node.isConnected ? LPMeta.node : document.querySelector('.location-preview__meta');
+    if (!meta) return;
+
+    const parent = LPMeta.origParent;
+    const next = LPMeta.origNext;
+
+    if (parent && parent.isConnected) {
+      try {
+        if (next && next.parentNode === parent) parent.insertBefore(meta, next);
+        else parent.appendChild(meta);
+      } catch {}
+    }
+
+    if (LPMeta.prevStyles) {
+      if (LPMeta.prevStyles.position) meta.style.position = LPMeta.prevStyles.position;
+      else meta.style.removeProperty('position');
+
+      if (LPMeta.prevStyles.zIndex) meta.style.zIndex = LPMeta.prevStyles.zIndex;
+      else meta.style.removeProperty('z-index');
+    } else {
+      meta.style.removeProperty('position');
+      meta.style.removeProperty('z-index');
+    }
+
+    LPMeta.node = null;
+    LPMeta.origParent = null;
+    LPMeta.origNext = null;
+    LPMeta.prevStyles = null;
+  }
+
   function isLPFullscreen() {
     const fs = document.fullscreenElement;
     return !!(fs && (fs.matches?.(PANO_FS_SEL) || fs.closest?.(PANO_FS_SEL)));
@@ -194,10 +241,12 @@
       try { moveModeButtonsInto(host); } catch {}
       try { syncFSModeIndicator(); } catch {}
       try { host.querySelectorAll('.ext-mini-mode-toggle').forEach(n => n.remove()); } catch {}
+      try { moveLPMetaInto(host); } catch {}
     } else {
       restoreMap();
       try { restoreDragUI(); } catch {}
       try { restoreModeButtons(); } catch {}
+      try { restoreLPMeta(); } catch {}
       try {
         const host = currentFsHost() || document;
         host.querySelectorAll('.ext-mini-mode-toggle').forEach(n => n.remove());
@@ -208,7 +257,17 @@
   const handleFullscreenMutations = () => {
     if (S.active && !isLPFullscreen()) restoreMap();
     if (isLPFullscreen()) {
-      try { const host = currentFsHost(); if (host) { moveLPPanelsInto(host); (window.__extRestoreFSLP && window.__extRestoreFSLP()); moveDragUIInto(host); moveModeButtonsInto(host); syncFSModeIndicator(); host.querySelectorAll('.ext-mini-mode-toggle').forEach(n => n.remove()); } } catch {}
+      try {
+        const host = currentFsHost();
+        if (host) {
+          moveLPPanelsInto(host);
+          (window.__extRestoreFSLP && window.__extRestoreFSLP());
+          moveDragUIInto(host);
+          moveModeButtonsInto(host);
+          syncFSModeIndicator();
+          host.querySelectorAll('.ext-mini-mode-toggle').forEach(n => n.remove()); 
+        }
+      } catch {}
     }
   };
 
