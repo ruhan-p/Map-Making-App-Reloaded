@@ -18,6 +18,11 @@
     S.wrap = w; return w;
   }
 
+  function moveLPTagsInto(host) {
+    if (!host) return;
+
+  }
+
   // Reuse only the mode buttons inside a dedicated FS overlay panel
   function moveModeButtonsInto(host) {
     if (!host) return;
@@ -31,12 +36,9 @@
       try { MButtons.origParent && MButtons.origParent.insertBefore(MButtons.placeholder, MButtons.origNext); } catch {}
     }
 
-    let panel = MButtons.panel && MButtons.panel.isConnected ? MButtons.panel : host.querySelector('.ext-fs-mode-panel');
-    if (!panel) {
-      panel = document.createElement('div');
-      panel.className = 'ext-fs-mode-panel';
-      host.appendChild(panel);
-    }
+    let panel = MButtons.panel && MButtons.panel.isConnected ? MButtons.panel : host.querySelector('.ext-lp-panel--2');
+    console.log(panel);
+    if (!panel) return;
     MButtons.panel = panel;
 
     if (btns.parentElement !== panel) {
