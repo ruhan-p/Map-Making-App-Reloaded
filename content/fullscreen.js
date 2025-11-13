@@ -6,7 +6,7 @@
   const LP = { node:null, placeholder:null, origParent:null, origNext:null };
   const DU = { node:null, placeholder:null, origParent:null, origNext:null };
   const MButtons = { node:null, placeholder:null, origParent:null, origNext:null, panel:null };
-  const LPMeta = { node:null, origParent:null, origNext:null, prevStyles:null };
+  const LPMeta = { node:null, origParent:null, origNext:null, prevStyles:null, addedClasses:false };
 
   function ensureWrap(host) {
     if (S.wrap && S.wrap.isConnected) return S.wrap;
@@ -18,7 +18,7 @@
 
   function moveLPMetaInto(host) {
     if (!host) return;
-    const meta = document.querySelector('.location-preview__meta');
+    const meta = LPMeta.node && LPMeta.node.isConnected ? LPMeta.node : document.querySelector('.location-preview__meta');
     if (!meta) return;
 
     if (!LPMeta.node) {
@@ -27,12 +27,27 @@
       LPMeta.origNext = meta.nextSibling || null;
       LPMeta.prevStyles = {
         position: meta.style.position || '',
-        zIndex: meta.style.zIndex || ''
+        zIndex: meta.style.zIndex || '',
+        top: meta.style.top || '',
+        left: meta.style.left || '',
+        right: meta.style.right || '',
+        bottom: meta.style.bottom || ''
       };
     }
 
     meta.style.zIndex = 'calc(var(--z-lppanels) - 1)';
     meta.style.position = 'fixed';
+    meta.style.top = '16px';
+    meta.style.left = '16px';
+    meta.style.right = 'auto';
+    meta.style.bottom = 'auto';
+
+    if (!LPMeta.addedClasses) {
+      try {
+        meta.classList.add('ext-lp-panel', 'ext-lp-panel--p3');
+        LPMeta.addedClasses = true;
+      } catch {}
+    }
 
     if (meta.parentElement !== host) {
       try { host.appendChild(meta); } catch {}
@@ -204,20 +219,30 @@
     }
 
     if (LPMeta.prevStyles) {
-      if (LPMeta.prevStyles.position) meta.style.position = LPMeta.prevStyles.position;
-      else meta.style.removeProperty('position');
-
-      if (LPMeta.prevStyles.zIndex) meta.style.zIndex = LPMeta.prevStyles.zIndex;
-      else meta.style.removeProperty('z-index');
+      meta.style.position = LPMeta.prevStyles.position;
+      meta.style.zIndex = LPMeta.prevStyles.zIndex;
+      meta.style.top = LPMeta.prevStyles.top;
+      meta.style.left = LPMeta.prevStyles.left;
+      meta.style.right = LPMeta.prevStyles.right;
+      meta.style.bottom = LPMeta.prevStyles.bottom;
     } else {
-      meta.style.removeProperty('position');
-      meta.style.removeProperty('z-index');
+      meta.style.position = '';
+      meta.style.zIndex = '';
+      meta.style.top = '';
+      meta.style.left = '';
+      meta.style.right = '';
+      meta.style.bottom = '';
+    }
+
+    if (LPMeta.addedClasses) {
+      try { meta.classList.remove('ext-lp-panel', 'ext-lp-panel--p3'); } catch {}
     }
 
     LPMeta.node = null;
     LPMeta.origParent = null;
     LPMeta.origNext = null;
     LPMeta.prevStyles = null;
+    LPMeta.addedClasses = false;
   }
 
   function isLPFullscreen() {
@@ -236,7 +261,6 @@
       const host = currentFsHost();
       moveMapIntoMini(host);
       try { moveLPPanelsInto(host); } catch {}
-      try { window.__extRestoreFSLP && window.__extRestoreFSLP(); } catch {}
       try { moveDragUIInto(host); } catch {}
       try { moveModeButtonsInto(host); } catch {}
       try { syncFSModeIndicator(); } catch {}
@@ -261,7 +285,6 @@
         const host = currentFsHost();
         if (host) {
           moveLPPanelsInto(host);
-          (window.__extRestoreFSLP && window.__extRestoreFSLP());
           moveDragUIInto(host);
           moveModeButtonsInto(host);
           syncFSModeIndicator();

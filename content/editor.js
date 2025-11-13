@@ -1302,27 +1302,6 @@
     if (el.style.top  !== clampedTop  + 'px') el.style.top  = clampedTop + 'px';
     el.__extRestored = true;
   }
-
-  async function positionLPPanels() {
-    const panels = getLPPanelElements();
-    if (!panels.length) return;
-
-    const inFS = isLPFullscreen();
-    if (!inFS) {
-      panels.forEach((panel) => {
-        if (!panel) return;
-        panel.style.transform = '';
-        panel.style.left = '';
-        panel.style.top = '';
-        panel.style.right = '';
-        panel.style.bottom = '';
-        panel.style.willChange = '';
-        panel.style.touchAction = '';
-        panel.classList.remove('ext-is-dragging');
-      });
-      return;
-    }
-  }
   
   // ------------------------------ Drag Shield Manager ------------------------
   const DragShieldManager = (() => {
@@ -2496,45 +2475,6 @@
     });
 
     lpProcessed.add(lp);
-
-    void positionLPPanels();
-  }
-
-  async function positionLPPanels() {
-    const panels = getLPPanelElements();
-    if (!panels.length) return;
-
-    const inFS = isLPFullscreen();
-    if (!inFS) {
-      panels.forEach((panel) => {
-        if (!panel) return;
-        panel.style.transform = '';
-        panel.style.left = '';
-        panel.style.top = '';
-        panel.style.right = '';
-        panel.style.bottom = '';
-        panel.style.willChange = '';
-        panel.style.touchAction = '';
-      });
-      return;
-    }
-
-    await Promise.all(panels.map(async (panel) => {
-      if (!panel) return;
-      try {
-        lockFixedBox(panel);
-        panel.style.transform = '';
-        panel.style.right = 'auto';
-        panel.style.bottom = 'auto';
-
-        const defaults = computeDefaultLeftTop(panel);
-        const { left, top } = clampToViewport(panel, defaults.left, defaults.top);
-        panel.style.left = `${left}px`;
-        panel.style.top = `${top}px`;
-
-      } catch {}
-    }));
-
   }
 
   const setupControls = (el) => {
@@ -2598,16 +2538,6 @@
         }
     });
   }
-
-  document.addEventListener('fullscreenchange', () => {
-    void positionLPPanels();
-    if (!isPanelLayoutEnabled()) return;
-    const el = document.querySelector(SELECTORS.locprev);
-    ps.fit(el);
-  }, true);
-  try {
-    window.__extRestoreFSLP = () => { void positionLPPanels(); };
-  } catch {}
 
   // MARK: CRE
   // ------------------------------ core apply -------------------------------

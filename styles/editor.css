@@ -211,7 +211,8 @@ button:disabled, .button:disabled {
 }
 
 .ext-tutorial-dialog__content {
-  width: min(720px, 90vw);
+  width: min(1080px, 90vw);
+  font-size: 1.4rem;
   position: absolute;
   top: 80px;
   color: inherit;
@@ -235,7 +236,7 @@ button:disabled, .button:disabled {
 .ext-tutorial-dialog__title {
   white-space: nowrap;
   margin: 0;
-  font-size: 1.6rem;
+  font-size: 2.4rem;
   font-weight: 700;
 }
 
@@ -264,7 +265,6 @@ button:disabled, .button:disabled {
 
 .ext-tutorial-dialog__lead {
   margin: 0;
-  font-size: 1rem;
   line-height: 1.5;
 }
 
@@ -1209,11 +1209,21 @@ section.map-embed > div:first-child > div > div {
   z-index: var(--z-lppanels) !important;
   pointer-events: none;
 }
+:is(:fullscreen, .location-preview__panorama:fullscreen, :-webkit-full-screen) .ext-lp-panels {
+  position: static !important;
+  inset: auto !important;
+  pointer-events: none !important;
+}
 .ext-lp-panel {
   padding: 8px 12px;
   gap: 4px;
   position: absolute;
   pointer-events: auto;
+}
+:is(:fullscreen, .location-preview__panorama:fullscreen, :-webkit-full-screen) .ext-lp-panels .ext-lp-panel {
+  position: fixed !important;
+  pointer-events: auto !important;
+  z-index: var(--z-lppanels);
 }
 .ext-lp-panel--p1 {
   display: flex;
@@ -1221,12 +1231,103 @@ section.map-embed > div:first-child > div > div {
   top: 0;
   right: 0;
 }
+:is(:fullscreen, .location-preview__panorama:fullscreen, :-webkit-full-screen) .ext-lp-panel--p1 {
+  left: auto;
+  right: 20px;
+  top: 80px;
+}
 .ext-lp-panel--p2 {
   display: inline-grid;
   grid-template-columns: repeat(2, auto); 
   order: 1;
   bottom: 0;
   left: 0;
+}
+:is(:fullscreen, .location-preview__panorama:fullscreen, :-webkit-full-screen) .ext-lp-panel--p2 {
+  left: auto;
+  right: 16px;
+  bottom: 16px;
+}
+
+:is(:fullscreen, .location-preview__panorama:fullscreen, :-webkit-full-screen) .ext-lp-panel--p3 {
+  top: 16px;
+  left: 16px;
+  right: auto;
+  bottom: auto;
+}
+
+.ext-mini-map {
+  position: fixed;
+  left: 8px;
+  bottom: 8px;
+  padding: 8px;
+  z-index: calc(var(--z-lppanels) - 1) !important;
+  pointer-events: none;
+  border-radius: 12px;
+  backdrop-filter: blur(var(--ext-blur));
+  -webkit-backdrop-filter: blur(var(--ext-blur));
+  background: var(--ext-card-bg);
+  --ext-mini-rest: 240px;
+  --ext-mini-full: 540px;
+  --ext-mini-fade: 0.5;
+  transition: opacity 160ms ease;
+  opacity: var(--ext-mini-fade);
+}
+.ext-mini-map:hover,
+.ext-mini-map:has(.map-embed:hover) {
+  opacity: 1;
+}
+:is(:fullscreen, .location-preview__panorama:fullscreen) .ext-mini-map .map-embed,
+.ext-mini-map .map-embed[data-ext-mini="true"] {
+  position: relative !important;
+  inset: auto !important;
+  width: var(--ext-mini-rest) !important;
+  height: var(--ext-mini-rest) !important;
+  box-shadow: var(--ext-shadow);
+  border-radius: 12px;
+  pointer-events: auto;
+  transition: width 180ms ease, height 180ms ease;
+}
+.ext-mini-map .map-embed:hover,
+:is(:fullscreen, .location-preview__panorama:fullscreen) .ext-mini-map .map-embed:hover,
+.ext-mini-map .map-embed[data-ext-mini="true"]:hover {
+  width: var(--ext-mini-full) !important;
+  height: var(--ext-mini-full) !important;
+}
+.ext-mini-map .embed-controls__control[data-position*="top"],
+.map-embed[data-ext-mini="true"] .embed-controls__control[data-position*="top"] {
+  display: none !important;
+}
+:is(:fullscreen, .location-preview__panorama:fullscreen, :-webkit-full-screen) .ext-mini-map::after {
+  position: absolute;
+  left: 16px;
+  right: auto;
+  bottom: 16px;
+  padding: 4px 8px;
+  font-size: 11px;
+  backdrop-filter: blur(var(--ext-blur));
+  -webkit-backdrop-filter: blur(var(--ext-blur));
+  background: var(--ext-card-bg);
+  color: var(--ext-card-fg);
+  border-radius: 6px;
+  pointer-events: none;
+}
+:is(:fullscreen, .location-preview__panorama:fullscreen, :-webkit-full-screen) .ext-mini-map {
+  left: 16px;
+  right: auto;
+  bottom: 16px;
+}
+
+:is(:fullscreen, .location-preview__panorama:fullscreen, :-webkit-full-screen) .ext-fs-mode-panel {
+  position: fixed !important;
+  right: 12px;
+  bottom: 12px;
+  z-index: var(--z-lppanels) !important;
+  pointer-events: auto;
+  padding: 4px !important;
+  width: 128px;
+  margin: 8px;
+  display: inline-block;
 }
 
 .map-links-control {
@@ -1416,59 +1517,7 @@ animation-direction: alternate;
 .ext-resize-bl { left: 4px;   bottom: 4px;  cursor: nesw-resize; }
 .ext-resize-tr { right: 4px;  top: 4px;     cursor: nesw-resize; }
 .ext-resize-tl { left: 4px;   top: 4px;     cursor: nwse-resize; }
-:is(:fullscreen, .location-preview__panorama:fullscreen, :-webkit-full-screen) .ext-lp-panels {
-  position: static !important;
-  inset: auto !important;
-  pointer-events: none !important;
-}
-:is(:fullscreen, .location-preview__panorama:fullscreen, :-webkit-full-screen) .ext-lp-panels .ext-lp-panel {
-  position: fixed !important;
-  pointer-events: auto !important;
-  z-index: var(--z-lppanels);
-}
-:is(:fullscreen, .location-preview__panorama:fullscreen, :-webkit-full-screen) .ext-fs-mode-panel {
-  position: fixed !important;
-  right: 12px;
-  bottom: 12px;
-  z-index: var(--z-lppanels) !important;
-  pointer-events: auto;
-  padding: 4px !important;
-  width: 128px;
-  margin: 8px;
-  display: inline-block;
-}
-:is(:fullscreen, .location-preview__panorama:fullscreen, :-webkit-full-screen) .ext-fs-mode-panel .ext-mode-buttons {
-  position: relative;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-:is(:fullscreen, .location-preview__panorama:fullscreen, :-webkit-full-screen) .ext-fs-mode-panel .button {
-  background: var(--ext-el-bg) !important;
-  border: none !important;
-  outline: none !important;
-  padding: 0px;
-  height: 36px;
-  line-height: 28px;
-  border-radius: calc(var(--ext-radius) - 2px);
-  pointer-events: auto;
-}
-:is(:fullscreen, .location-preview__panorama:fullscreen, :-webkit-full-screen) .ext-fs-mode-panel .ext-mode-indicator {
-  position: absolute;
-  top: 4px;
-  left: 8px;
-  width: 80px;
-  height: 36px;
-  background: var(--ext-hl1);
-  border-radius: calc(var(--ext-radius) - 2px);
-  border: 2px solid var(--ext-mode-indicator-add);
-  box-sizing: border-box;
-  transform-origin: center center;
-  transform: scale(1);
-  transition: left 180ms ease, width 180ms ease, border-color 220ms ease, transform 240ms cubic-bezier(0.34, 1.56, 0.64, 1);
-  pointer-events: none;
-  z-index: 1;
-}
+
 [data-ext-hidden="true"],
 .ext-hidden-orig-control {
   display: none !important;
@@ -1530,61 +1579,7 @@ body.ext-proxy-menu-active [data-radix-popper-content-wrapper] {
   max-width: calc(100% - 12px);
   pointer-events: none;
 }
-.ext-mini-map {
-  position: fixed;
-  right: 8px;
-  bottom: 8px;
-  padding: 8px;
-  z-index: calc(var(--z-lppanels) - 1) !important;
-  pointer-events: none;
-  border-radius: 12px;
-  backdrop-filter: blur(var(--ext-blur));
-  -webkit-backdrop-filter: blur(var(--ext-blur));
-  background: var(--ext-card-bg);
-  --ext-mini-rest: 240px;
-  --ext-mini-full: 540px;
-  --ext-mini-fade: 0.5;
-  transition: opacity 160ms ease;
-  opacity: var(--ext-mini-fade);
-}
-.ext-mini-map:hover,
-.ext-mini-map:has(.map-embed:hover) {
-  opacity: 1;
-}
-:is(:fullscreen, .location-preview__panorama:fullscreen) .ext-mini-map .map-embed,
-.ext-mini-map .map-embed[data-ext-mini="true"] {
-  position: relative !important;
-  inset: auto !important;
-  width: var(--ext-mini-rest) !important;
-  height: var(--ext-mini-rest) !important;
-  box-shadow: var(--ext-shadow);
-  border-radius: 12px;
-  pointer-events: auto;
-  transition: width 180ms ease, height 180ms ease;
-}
-.ext-mini-map .map-embed:hover,
-:is(:fullscreen, .location-preview__panorama:fullscreen) .ext-mini-map .map-embed:hover,
-.ext-mini-map .map-embed[data-ext-mini="true"]:hover {
-  width: var(--ext-mini-full) !important;
-  height: var(--ext-mini-full) !important;
-}
-.ext-mini-map .embed-controls__control[data-position*="top"],
-.map-embed[data-ext-mini="true"] .embed-controls__control[data-position*="top"] {
-  display: none !important;
-}
-:is(:fullscreen, :-webkit-full-screen) .ext-mini-map::after {
-  position: absolute;
-  right: 8px;
-  bottom: 8px;
-  padding: 4px 8px;
-  font-size: 11px;
-  backdrop-filter: blur(var(--ext-blur));
-  -webkit-backdrop-filter: blur(var(--ext-blur));
-  background: var(--ext-card-bg);
-  color: var(--ext-card-fg);
-  border-radius: 6px;
-  pointer-events: none;
-}
+
 [data-microtip-position]::before, [data-microtip-position]::after,
 [role="tooltip"]::before, [role="tooltip"]::after,
 .microtip::before, .microtip::after, .tooltip,
