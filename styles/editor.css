@@ -1256,6 +1256,19 @@ section.map-embed > div:first-child > div > div {
   bottom: auto;
 }
 
+.location-preview__meta.ext-lp-panel--p3 .location-preview__date {
+  display: none !important;
+}
+.location-preview__meta:not(.ext-lp-panel--p3) .location-preview__date {
+  display: block !important;
+}
+.location-preview__meta.ext-lp-panel--p3 {
+    grid-template-areas:
+        "desc desc desc"
+        "actions actions actions"
+        "tags tags tags" !important;
+}
+
 .ext-mini-map {
   position: fixed;
   left: 8px;
