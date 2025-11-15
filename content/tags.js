@@ -181,6 +181,33 @@ function initAdvancedTagManager(overviewEl) {
   }
   overviewEl.__extTagManagerInitialized = true;
 
+  const TAG_ITEM_SELECTOR = '.tag.has-button, .tag[role="button"]:not(.has-button)';
+
+  const getBlocks = () => [...overviewEl.querySelectorAll('.ext-list-block')];
+  const getBlockIndex = (blockEl) => {
+    if (!blockEl) return -1;
+    const blocks = getBlocks();
+    return blocks.indexOf(blockEl);
+  };
+  const markTagListIndex = (tagEl, idx) => {
+    if (!tagEl) return;
+    if (typeof idx === 'number' && idx >= 0) {
+      tagEl.dataset.extListIndex = String(idx);
+    } else {
+      delete tagEl.dataset.extListIndex;
+    }
+  };
+  const getTagListIndex = (tagEl) => {
+    if (!tagEl) return -1;
+    const dataIdx = tagEl.dataset?.extListIndex;
+    if (dataIdx != null && dataIdx !== '') {
+      const parsed = parseInt(dataIdx, 10);
+      if (!Number.isNaN(parsed)) return parsed;
+    }
+    const block = tagEl.closest?.('.ext-list-block') || null;
+    return getBlockIndex(block);
+  };
+
   const overviewStore = window.__extOverviewStorage || null;
   const storeReady = overviewStore?.ready?.() ?? Promise.resolve();
   const collapseId = overviewStore?.ids?.TAG_MANAGER || 'tag-manager';
@@ -273,14 +300,22 @@ function initAdvancedTagManager(overviewEl) {
           if (typeof tag === 'string' && tag) desiredListByKey.set(tag, idx);
         });
       });
-      return;
+    } else {
+      const blocksSnapshot = getBlocks();
+      blocksSnapshot.forEach((blk, idx) => {
+        blk.querySelectorAll(`.tag-list > ${TAG_ITEM_SELECTOR}`).forEach(tag => {
+          const key = getTagKey(tag);
+          if (key) desiredListByKey.set(key, idx);
+        });
+      });
     }
 
-    const TAG_DND_SELECTOR = '.tag.has-button, .tag[role="button"]:not(.has-button)';
-    const blocks = [...overviewEl.querySelectorAll('.ext-list-block')];
+    const blocks = getBlocks();
     blocks.forEach((blk, idx) => {
-      blk.querySelectorAll(`.tag-list > ${TAG_DND_SELECTOR}`).forEach(tag => {
-        desiredListByKey.set(getTagKey(tag), idx);
+      blk.querySelectorAll(`.tag-list > ${TAG_ITEM_SELECTOR}`).forEach(tag => {
+        const key = getTagKey(tag);
+        if (key && !desiredListByKey.has(key)) desiredListByKey.set(key, idx);
+        markTagListIndex(tag, idx);
       });
     });
   }
@@ -299,6 +334,27 @@ function initAdvancedTagManager(overviewEl) {
     updateTagCountBadge();
   }
   overviewEl.__extSave = save;
+
+  function handleExternalTagRename({ tagEl, oldName, newName }) {
+    const next = (newName || '').trim();
+    const prev = (oldName || '').trim();
+    if (!next || next === prev) return;
+    if (!desiredListByKey) rebuildDesiredListMap();
+    if (!desiredListByKey) desiredListByKey = new Map();
+    let idx = getTagListIndex(tagEl);
+    if (idx < 0 && prev) {
+      const mapped = desiredListByKey.get(prev);
+      if (typeof mapped === 'number') idx = mapped;
+    }
+    if (idx < 0) return;
+    if (prev) desiredListByKey.delete(prev);
+    desiredListByKey.set(next, idx);
+    if (tagEl) markTagListIndex(tagEl, idx);
+  }
+
+  window.__extHandleTagRename = (detail) => {
+    try { handleExternalTagRename(detail || {}); } catch {}
+  };
 
   // ---------- Utilities ----------
   function getTagKey(tagEl) {
@@ -626,7 +682,10 @@ function initAdvancedTagManager(overviewEl) {
           if (desiredListByKey && typeof sectionIndex === 'number' && sectionIndex > 0) {
             movedTagKeys.forEach(key => desiredListByKey.set(key, sectionIndex - 1));
           }
-          tagsToMove.forEach(el => targetList.appendChild(el));
+          tagsToMove.forEach(el => {
+            targetList.appendChild(el);
+            markTagListIndex(el, sectionIndex - 1);
+          });
           const targetSortMode = previousBlock?.dataset.sortMode || 'custom';
           if (targetSortMode !== 'custom') applySort(targetList, targetSortMode);
         }
@@ -669,6 +728,8 @@ function initAdvancedTagManager(overviewEl) {
       block.appendChild(list);
       ensureHeader(block, overviewEl.querySelectorAll('.ext-list-block').length - 1);
       wireList(list);
+      const idx = getBlockIndex(block);
+      list.querySelectorAll(TAG_ITEM_SELECTOR).forEach(tag => markTagListIndex(tag, idx));
     });
   }
 
@@ -760,7 +821,10 @@ function initAdvancedTagManager(overviewEl) {
         if (!extraBlock) continue;
         const extraList = extraBlock.querySelector('.tag-list');
         if (primaryList && extraList && extraList !== primaryList) {
-          extraList.querySelectorAll(TAG_DND_SELECTOR).forEach(tag => primaryList.appendChild(tag));
+          extraList.querySelectorAll(TAG_DND_SELECTOR).forEach(tag => {
+            primaryList.appendChild(tag);
+            markTagListIndex(tag, 0);
+          });
         }
         extraBlock.remove();
       }
@@ -802,6 +866,7 @@ function initAdvancedTagManager(overviewEl) {
         if (targetList && tag.parentNode !== targetList) {
           targetList.appendChild(tag);
         }
+        markTagListIndex(tag, idx);
       }
     });
 
@@ -824,6 +889,7 @@ function initAdvancedTagManager(overviewEl) {
       }
 
       updateListDraggability(blk);
+      list.querySelectorAll(TAG_DND_SELECTOR).forEach(tag => markTagListIndex(tag, idx));
     });
   }
 
@@ -870,6 +936,7 @@ function initAdvancedTagManager(overviewEl) {
                   target.appendChild(tag);
                   shouldSave = true;
                 }
+                markTagListIndex(tag, idx);
               }
             });
           }
