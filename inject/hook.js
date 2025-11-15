@@ -670,3 +670,55 @@
 
   window.__extShapesBridge = true;
 })();
+
+(() => {
+  const NodeProto = window.Node?.prototype;
+  if (window.__extDomPatchInstalled || !NodeProto) {
+    return;
+  }
+  window.__extDomPatchInstalled = true;
+
+  const { removeChild, insertBefore, appendChild } = NodeProto;
+
+  if (typeof removeChild !== 'function' || typeof insertBefore !== 'function' || typeof appendChild !== 'function') {
+    return;
+  }
+
+  const isInTagManager = (node) => {
+    const el = node?.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement;
+    return !!el?.closest('.map-overview .tool-block.tag-manager');
+  };
+
+  NodeProto.removeChild = function patchedRemoveChild(child) {
+    if (window.__EXT_DOM_PATCH_DISABLED__) {
+      return removeChild.call(this, child);
+    }
+
+    try {
+      const isStandardCall = !child || child.parentNode === this || (!isInTagManager(child) && !isInTagManager(this));
+      if (isStandardCall) {
+        return removeChild.call(this, child);
+      }
+
+      const realParent = child.parentNode;
+      if (realParent) {
+        return removeChild.call(realParent, child);
+      }
+      return child;
+    } catch { return child; }
+  };
+
+  NodeProto.insertBefore = function patchedInsertBefore(newNode, referenceNode) {
+    if (window.__EXT_DOM_PATCH_DISABLED__) {
+      return insertBefore.call(this, newNode, referenceNode);
+    }
+
+    try {
+      const isStandardCall = !referenceNode || referenceNode.parentNode === this || (!isInTagManager(newNode) && !isInTagManager(this));
+      if (isStandardCall) {
+        return insertBefore.call(this, newNode, referenceNode);
+      }
+      return appendChild.call(this, newNode);
+    } catch { return appendChild.call(this, newNode); }
+  };
+})();
