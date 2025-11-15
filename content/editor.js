@@ -2133,6 +2133,80 @@
 
   const proxiedControls = new WeakSet();
   const lpProcessed = new WeakSet();
+  const ensureControlsSvOpacitySlider = (() => {
+    const KEY = 'svOpacity';
+    const STEP = 0.05;
+    let wrapEl = null;
+    let sliderEl = null;
+    let valueEl = null;
+    let wired = false;
+
+    const clampValue = (value) => {
+      const num = Number(value);
+      if (!Number.isFinite(num)) return 1;
+      const clamped = Math.min(1, Math.max(0, num));
+      return Number((Math.round(clamped / STEP) * STEP).toFixed(2));
+    };
+
+    const setDisplayValue = (val) => {
+      if (!sliderEl) return;
+      const next = clampValue(typeof val === 'number' ? val : readJSON(KEY, 1));
+      const str = String(next);
+      if (sliderEl.value !== str) sliderEl.value = str;
+      if (valueEl) valueEl.textContent = str;
+    };
+
+    const handleStorageEvent = (event) => {
+      if (!event || event.key !== KEY) return;
+      if (event.newValue == null) {
+        setDisplayValue(1);
+        return;
+      }
+      try {
+        setDisplayValue(JSON.parse(event.newValue));
+      } catch {
+        setDisplayValue();
+      }
+    };
+
+    const handleSettingEvent = (event) => {
+      if (!event?.detail || event.detail.key !== KEY) return;
+      setDisplayValue(event.detail.value);
+    };
+
+    const ensureListeners = () => {
+      if (wired) return;
+      wired = true;
+      window.addEventListener('storage', handleStorageEvent);
+      window.addEventListener('ext:setting', handleSettingEvent);
+    };
+
+    return (panel) => {
+      if (!panel) return;
+      if (!wrapEl || !wrapEl.isConnected) {
+        wrapEl = document.createElement('div');
+        wrapEl.className = 'embed-controls__control ext-sv-opacity-control';
+        sliderEl = document.createElement('input');
+        sliderEl.type = 'range'; sliderEl.min = '0'; sliderEl.max = '1'; sliderEl.step = String(STEP);
+        sliderEl.className = 'ext-sv-opacity-slider';
+        //sliderEl.addEventListener('pointerdown', (e) => e.stopPropagation(), true);
+        //sliderEl.addEventListener('click', (e) => e.stopPropagation(), true);
+        sliderEl.addEventListener('input', () => {
+          const normalized = clampValue(parseFloat(sliderEl.value));
+          const str = String(normalized);
+          if (sliderEl.value !== str) sliderEl.value = str;
+          if (valueEl) valueEl.textContent = str;
+          writeJSON(KEY, normalized);
+        }, true);
+        wrapEl.appendChild(sliderEl);
+      }
+      if (panel.firstChild !== wrapEl) {
+        panel.insertBefore(wrapEl, panel.firstChild || null);
+      }
+      ensureListeners();
+      setDisplayValue();
+    };
+  })();
 
   function consolidateControls() {
     let panel = document.querySelector(SELECTORS.controls);
@@ -2141,6 +2215,7 @@
       panel.className = 'ext-controls-panel ext-float';
       document.body.appendChild(panel);
     }
+    ensureControlsSvOpacitySlider(panel);
 
     const applyBadgeStructure = (clonedContainer) => {
       const storeBtn = clonedContainer.querySelector('button[aria-label="Store map position"]');

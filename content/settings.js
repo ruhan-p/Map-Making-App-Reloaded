@@ -106,23 +106,6 @@
 
     const stop = (e) => { e.stopPropagation(); };
 
-    const readJSON = (key, def) => {
-      try {
-        const raw = localStorage.getItem(key);
-        return raw === null ? def : JSON.parse(raw);
-      } catch { return def; }
-    };
-    const writeJSON = (key, val) => {
-      const before = localStorage.getItem(key);
-      const after = JSON.stringify(val);
-      if (before === after) return;
-      try { localStorage.setItem(key, after); } catch {}
-      try {
-        window.dispatchEvent(new StorageEvent('storage', { key, oldValue: before, newValue: after, storageArea: localStorage }));
-      } catch {}
-      try { window.dispatchEvent(new CustomEvent('ext:setting', { detail: { key, value: val }})); } catch {}
-    };
-
     function getMapStyleCookie() {
       const name = 'mapstyle=';
       const decodedCookie = decodeURIComponent(document.cookie);
