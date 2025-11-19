@@ -16,6 +16,15 @@
     S.wrap = w; return w;
   }
 
+  function shouldShowFSMeta() {
+    try {
+      const raw = localStorage.getItem('fullscreenTagList');
+      return raw === null ? true : JSON.parse(raw);
+    } catch {
+      return true;
+    }
+  }
+
   function moveLPMetaInto(host) {
     if (!host) return;
     const meta = LPMeta.node && LPMeta.node.isConnected ? LPMeta.node : document.querySelector('.location-preview__meta');
@@ -31,7 +40,8 @@
         top: meta.style.top || '',
         left: meta.style.left || '',
         right: meta.style.right || '',
-        bottom: meta.style.bottom || ''
+        bottom: meta.style.bottom || '',
+        display: meta.style.display || ''
       };
     }
 
@@ -71,7 +81,7 @@
     MButtons.panel = panel;
 
     if (modegroup.parentElement !== panel) {
-      try { panel.appendChild(modegroup); syncFSModeIndicator(); } catch {}
+      try { panel.appendChild(modegroup); syncFSModeIndicator(); modegroup.style.gridArea = 'mode'; } catch {}
     }
   }
 
@@ -225,6 +235,7 @@
       meta.style.left = LPMeta.prevStyles.left;
       meta.style.right = LPMeta.prevStyles.right;
       meta.style.bottom = LPMeta.prevStyles.bottom;
+      meta.style.display = LPMeta.prevStyles.display;
     } else {
       meta.style.position = '';
       meta.style.zIndex = '';
@@ -232,6 +243,7 @@
       meta.style.left = '';
       meta.style.right = '';
       meta.style.bottom = '';
+      meta.style.display = '';
     }
 
     if (LPMeta.addedClasses) {
@@ -265,7 +277,7 @@
       try { moveModeButtonsInto(host); } catch {}
       try { syncFSModeIndicator(); } catch {}
       try { host.querySelectorAll('.ext-mini-mode-toggle').forEach(n => n.remove()); } catch {}
-      try { moveLPMetaInto(host); } catch {}
+      try { if (shouldShowFSMeta()) moveLPMetaInto(host); } catch {}
     } else {
       restoreMap();
       try { restoreDragUI(); } catch {}
@@ -288,6 +300,7 @@
           moveDragUIInto(host);
           moveModeButtonsInto(host);
           syncFSModeIndicator();
+          applyLPMetaVisibility();
           host.querySelectorAll('.ext-mini-mode-toggle').forEach(n => n.remove()); 
         }
       } catch {}

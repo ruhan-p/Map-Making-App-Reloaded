@@ -12,8 +12,6 @@
   });
   const AUTO_SAVE_KEY = 'autoSave';
   const AUTO_SAVE_DEFAULT = -1;
-  const SAVE_BUTTON_SELECTOR = '[data-qa="map-save"].button--primary';
-  const SAVE_BUTTON_FULL_SELECTOR = `${SELECTORS.meta} ${SAVE_BUTTON_SELECTOR}`;
 
   let featureFlags = { ...DEFAULT_FEATURE_FLAGS };
   let featureFlagsReady = false;
@@ -755,20 +753,6 @@
     }, true);
   }
 
-  const MARKER_VISIBILITY_LABEL = 'Adjust visibility of unselected markers';
-  function findMarkerVisibilityButton() {
-    const selectors = [
-      `${SELECTORS.overview} button[aria-label="${MARKER_VISIBILITY_LABEL}"]`,
-      `.ext-proxied-original button[aria-label="${MARKER_VISIBILITY_LABEL}"]`,
-      `button[aria-label="${MARKER_VISIBILITY_LABEL}"]`
-    ];
-    for (const selector of selectors) {
-      const btn = document.querySelector(selector);
-      if (btn && btn.isConnected) return btn;
-    }
-    return null;
-  }
-
   function installEditorHotkeys() {
     if (window.__extEditorHotkeysInstalled) return;
     window.__extEditorHotkeysInstalled = true;
@@ -781,7 +765,7 @@
         if (!e.metaKey && !e.ctrlKey && !e.altKey && !e.repeat && key === 'v') {
           if (!isPanelLayoutEnabled()) return;
           if (isTypingTarget(e.target)) return;
-          const toggleBtn = findMarkerVisibilityButton();
+          const toggleBtn = document.querySelector('button[aria-label="Adjust visibility of unselected markers"]');
           if (!toggleBtn) return;
           const disabled = typeof isDisabled === 'function'
             ? isDisabled(toggleBtn)
@@ -897,29 +881,6 @@
   const inited = new WeakSet();
   let lastMutationAt = now();
   const __extTooltipProcessed = new WeakSet();
-
-  function ensureCompassEnhanced() {
-    try {
-      const compass = document.querySelector('.compass-control');
-      if (!compass) return;
-      const holder = compass.closest('.embed-controls__control');
-      const wrap = compass.closest('.map-control');
-      if (wrap && !wrap.classList.contains('ext-compass-wrap')) {
-        wrap.classList.add('ext-compass-wrap');
-      }
-      if (holder) {
-        holder.classList.add('ext-compass-enhanced');
-        holder.setAttribute('data-position', 'top-left');
-        try {
-          holder.style.top = '8px';
-          holder.style.left = '8px';
-          holder.style.bottom = 'auto';
-          holder.style.right = 'auto';
-          holder.style.inset = '';
-        } catch {}
-      }
-    } catch {}
-  }
 
   function setSettingsMenuVisibility(enabled) {
     const btn = document.querySelector('.ext-settings-button');
@@ -1716,12 +1677,451 @@
     }
   }
 
+    
+  const proxiedControls = new WeakSet();
+  const lpProcessed = new WeakSet();
+  const ensureControlsSvOpacitySlider = (() => {
+    const KEY = 'svOpacity';
+    const VISIBILITY_KEY = 'svOpacityControlEnabled';
+    const VISIBILITY_DEFAULT = true;
+    const STEP = 0.05;
+    let wrapEl = null;
+    let sliderEl = null;
+    let valueEl = null;
+    let panelRef = null;
+    let wired = false;
+
+    const clampValue = (value) => {
+      const num = Number(value);
+      if (!Number.isFinite(num)) return 1;
+      const clamped = Math.min(1, Math.max(0, num));
+      return Number((Math.round(clamped / STEP) * STEP).toFixed(2));
+    };
+
+    const setDisplayValue = (val) => {
+      if (!sliderEl) return;
+      const next = clampValue(typeof val === 'number' ? val : readJSON(KEY, 1));
+      const str = String(next);
+      if (sliderEl.value !== str) sliderEl.value = str;
+      if (valueEl) valueEl.textContent = str;
+    };
+
+    const shouldShowSlider = () => {
+      try {
+        const stored = readJSON(VISIBILITY_KEY, VISIBILITY_DEFAULT);
+        return stored == null ? VISIBILITY_DEFAULT : !!stored;
+      } catch {
+        return VISIBILITY_DEFAULT;
+      }
+    };
+
+    const syncVisibility = () => {
+      if (!wrapEl) return;
+      const show = shouldShowSlider();
+      if (show) {
+        wrapEl.hidden = false;
+        if (panelRef && wrapEl.parentElement !== panelRef) {
+          panelRef.appendChild(wrapEl);
+        }
+        setDisplayValue();
+      } else if (wrapEl.isConnected) {
+        wrapEl.hidden = true;
+        try { wrapEl.remove(); } catch {}
+      } else {
+        wrapEl.hidden = true;
+      }
+    };
+
+    const handleStorageEvent = (event) => {
+      if (!event) return;
+      if (event.key === KEY) {
+        if (event.newValue == null) {
+          setDisplayValue(1);
+          return;
+        }
+        try {
+          setDisplayValue(JSON.parse(event.newValue));
+        } catch {
+          setDisplayValue();
+        }
+        return;
+      }
+      if (event.key === VISIBILITY_KEY) {
+        syncVisibility();
+      }
+    };
+
+    const handleSettingEvent = (event) => {
+      if (!event?.detail) return;
+      if (event.detail.key === KEY) {
+        setDisplayValue(event.detail.value);
+        return;
+      }
+      if (event.detail.key === VISIBILITY_KEY) {
+        syncVisibility();
+      }
+    };
+
+    const ensureListeners = () => {
+      if (wired) return;
+      wired = true;
+      window.addEventListener('storage', handleStorageEvent);
+      window.addEventListener('ext:setting', handleSettingEvent);
+    };
+
+    return (panel) => {
+      if (!panel) return;
+      panelRef = panel;
+      if (!wrapEl) {
+        wrapEl = document.createElement('div');
+        wrapEl.className = 'embed-controls__control ext-sv-opacity-control';
+        sliderEl = document.createElement('input');
+        sliderEl.type = 'range';
+        sliderEl.min = '0';
+        sliderEl.max = '1';
+        sliderEl.step = String(STEP);
+        sliderEl.className = 'ext-sv-opacity-slider';
+        sliderEl.addEventListener('input', () => {
+          const normalized = clampValue(parseFloat(sliderEl.value));
+          const str = String(normalized);
+          if (sliderEl.value !== str) sliderEl.value = str;
+          if (valueEl) valueEl.textContent = str;
+          writeJSON(KEY, normalized);
+        }, true);
+        wrapEl.appendChild(sliderEl);
+      }
+      ensureListeners();
+      syncVisibility();
+    };
+  })();
+  
+  function consolidateControls() {
+    let panel = document.querySelector(SELECTORS.controls);
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.className = 'ext-controls-panel ext-float';
+      document.body.appendChild(panel);
+    }
+    const applyBadgeStructure = (clonedContainer) => {
+      const storeBtn = clonedContainer.querySelector('button[aria-label="Store map position"]');
+      const returnBtn = clonedContainer.querySelector('button[aria-label="Return to stored map position"]');
+
+      if (storeBtn && returnBtn) {
+        if (storeBtn.parentElement.classList.contains('ext-store-pos-wrapper')) {
+          return;
+        }
+        const wrapper = document.createElement('div');
+        wrapper.className = 'ext-store-pos-wrapper';
+        storeBtn.parentElement.insertBefore(wrapper, storeBtn);
+        wrapper.appendChild(storeBtn);
+        wrapper.appendChild(returnBtn);
+        returnBtn.classList.add('ext-return-badge');
+      }
+    };
+
+    const btns = [ "Store map position", "Return to stored map position", "Zoom in", "Adjust visibility of unselected markers", "Draw a polygon selection", "Draw a rectangle selection" ];
+      
+    const allControls = document.querySelectorAll('.embed-controls__control');
+
+    allControls.forEach(originalControl => {
+      if (originalControl.closest(SELECTORS.controls) || originalControl.closest(SELECTORS.locprev)) {
+        return;
+      }
+      
+      if (proxiedControls.has(originalControl)) {
+        return;
+      }
+
+      const button = originalControl.querySelector('button[aria-label]');
+      if (button && btns.includes(button.getAttribute('aria-label'))) {
+        
+        const clonedControl = originalControl.cloneNode(true);
+        panel.appendChild(clonedControl);
+        originalControl.classList.add('ext-proxied-original');
+        proxiedControls.add(originalControl);
+
+        const syncProxy = () => {
+          clonedControl.innerHTML = originalControl.innerHTML;
+
+          const originalButtons = Array.from(originalControl.querySelectorAll('button, a'));
+          const clonedButtons = Array.from(clonedControl.querySelectorAll('button, a'));
+
+          clonedButtons.forEach((clonedButton, index) => {
+            const originalButton = originalButtons[index];
+            if (originalButton) {
+              clonedButton.addEventListener('click', e => {
+                e.preventDefault(); e.stopPropagation(); originalButton.click();
+              });
+            }
+          });
+          
+          applyBadgeStructure(clonedControl);
+        };
+        
+        syncProxy();
+
+        const observer = new MutationObserver(syncProxy);
+        observer.observe(originalControl, {
+          childList: true,
+          attributes: true,
+          subtree: true,
+          attributeFilter: ['class', 'data-state', 'disabled', 'src', 'aria-label', 'aria-pressed']
+        });
+      }
+    });
+
+    const selectionLabels = [ 'Draw a polygon selection', 'Draw a rectangle selection' ];
+    selectionLabels.forEach((label) => {
+      document.querySelectorAll(`.embed-controls__control button[aria-label="${label}"]`).forEach((btn) => {
+        if (btn.closest('.ext-controls-panel')) return;
+        if (btn.__extSelWired) return;
+        btn.__extSelWired = true;
+        btn.addEventListener('click', (e) => {
+          try {
+            const was = btn.getAttribute('aria-pressed') === 'true';
+            selectionLabels.forEach((lbl) => {
+              document.querySelectorAll(`button[aria-label="${lbl}"]`).forEach((b) => {
+                try { b.setAttribute('aria-pressed', 'false'); } catch {}
+              });
+            });
+            if (!was) {
+              document.querySelectorAll(`button[aria-label="${label}"]`).forEach((b) => {
+                try { b.setAttribute('aria-pressed', 'true'); } catch {}
+              });
+            }
+          } catch {}
+        }, true);
+      });
+    });
+
+    const PREF_KEY = 'extClickModePref';
+    function getMode() {
+      try { return localStorage.getItem('extClickMode') === 'move' ? 'move' : 'add'; } catch { return 'add'; }
+    }
+    function getPref() {
+      try { return localStorage.getItem(PREF_KEY) === 'move' ? 'move' : 'add'; } catch { return 'add'; }
+    }
+    function setPref(m) {
+      const v = m === 'move' ? 'move' : 'add';
+      try { localStorage.setItem(PREF_KEY, v); } catch {}
+    }
+    function hasSelection() {
+      try { return localStorage.getItem('extHasSelection') === '1'; } catch { return false; }
+    }
+    function setMode(m) {
+      const want = m === 'move' ? 'move' : 'add';
+      setPref(want);
+      const sel = hasSelection();
+      const effective = sel ? want : 'add';
+      try { localStorage.setItem('extClickMode', effective); } catch {}
+      syncModeButtons();
+    }
+
+    function ensureModeGroup() {
+      panel.querySelectorAll('[data-ext-mode-kind]')?.forEach(el => { try { el.remove(); } catch {} });
+      let group = panel.querySelector('.ext-mode-group');
+      if (!group) {
+        group = document.createElement('div');
+        group.className = 'embed-controls__control ext-mode-group';
+        const indicator = document.createElement('div');
+        indicator.className = 'ext-mode-indicator';
+        const btnWrap = document.createElement('div');
+        btnWrap.className = 'ext-mode-buttons';
+        const mkBtn = (kind, label) => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'button';
+          b.dataset.kind = kind;
+          b.setAttribute('aria-label', `${label} locations on map click`);
+          b.textContent = label;
+          b.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); setMode(kind); }, true);
+          return b;
+        };
+        btnWrap.appendChild(mkBtn('add','Add'));
+        btnWrap.appendChild(mkBtn('move','Move'));
+        group.appendChild(indicator);
+        group.appendChild(btnWrap);
+        panel.appendChild(group);
+      }
+      return group;
+    }
+
+    function syncModeButtons() {
+      const cur = getMode();
+      const hasSel = (function(){ try { return localStorage.getItem('extHasSelection') === '1'; } catch { return false; } })();
+      const group = ensureModeGroup();
+      document.querySelectorAll('.ext-mode-buttons > .button').forEach(b => {
+        const kind = b.dataset.kind;
+        const on = (kind === cur);
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        b.dataset.state = on ? 'on' : 'off';
+        if (kind === 'move') { b.disabled = !hasSel; }
+      });
+      const ind = group.querySelector('.ext-mode-indicator');
+      const target = group.querySelector(`.ext-mode-buttons > .button[data-kind="${cur}"]`);
+      try { group.setAttribute('data-mode', cur); } catch {}
+      if (ind && target) {
+        const gr = group.getBoundingClientRect();
+        const br = target.getBoundingClientRect();
+        const left = Math.max(1, Math.round(br.left - gr.left) + 12);
+        const width = Math.round(br.width);
+        ind.style.left = left + 'px';
+        ind.style.width = width + 'px';
+        ind.style.borderColor = (cur === 'add') ? 'var(--ext-mode-indicator-add)' : 'var(--ext-mode-indicator-move)';
+      }
+      try { window.__extFSIndicatorSync && window.__extFSIndicatorSync(); } catch {}
+      document.querySelectorAll('.ext-mini-mode-toggle button').forEach(b => {
+        const kind = b.dataset.kind;
+        const on = (kind === cur);
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        b.dataset.state = on ? 'on' : 'off';
+        if (kind === 'move') { b.disabled = !hasSel; }
+      });
+    }
+
+    ensureModeGroup();
+    syncModeButtons();
+    ensureControlsSvOpacitySlider(panel);
+    
+    if (!window.__extModeHotkeysInstalled) {
+      window.__extModeHotkeysInstalled = true;
+      document.addEventListener('keydown', (e) => {
+        try {
+          if (e.defaultPrevented) return;
+          const t = e.target;
+          if (isTypingTarget(t)) return; // do not hijack when typing
+          if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+          const k = e.key;
+          const c = e.code;
+          if (k === '1' || c === 'Digit1') {
+            e.preventDefault(); e.stopPropagation();
+            setMode('add');
+          } else if (k === '2' || c === 'Digit2') {
+            e.preventDefault(); e.stopPropagation();
+            setMode('move');
+          }
+        } catch {}
+      }, true);
+    }
+    if (!window.__extModeSyncBound) {
+      window.__extModeSyncBound = true;
+      window.addEventListener('storage', (ev) => {
+        if (!ev) return;
+        if (ev.key === 'extClickMode' || ev.key === 'extHasSelection') {
+          const sel = localStorage.getItem('extHasSelection') === '1';
+          const pref = getPref();
+          let mode = localStorage.getItem('extClickMode') === 'move' ? 'move' : 'add';
+          if (!sel && mode === 'move') {
+            try { localStorage.setItem('extClickMode', 'add'); } catch {}
+          }
+          if (sel && pref === 'move' && mode !== 'move') {
+            try { localStorage.setItem('extClickMode', 'move'); } catch {}
+          }
+          syncModeButtons();
+        }
+      });
+      window.addEventListener('ext:selection', (ev) => {
+        try {
+          const sel = !!(ev && ev.detail && ev.detail.hasSelection);
+          const pref = getPref();
+          let mode = localStorage.getItem('extClickMode') === 'move' ? 'move' : 'add';
+          if (!sel && mode === 'move') {
+            localStorage.setItem('extClickMode', 'add');
+          } else if (sel && pref === 'move' && mode !== 'move') {
+            localStorage.setItem('extClickMode', 'move');
+          }
+        } catch {}
+        syncModeButtons();
+      });
+      window.__extModeSyncPoll = setInterval(() => {
+        const sel = localStorage.getItem('extHasSelection') === '1';
+        const pref = getPref();
+        const mode = localStorage.getItem('extClickMode') === 'move' ? 'move' : 'add';
+        if (!sel && mode === 'move') {
+          try { localStorage.setItem('extClickMode', 'add'); } catch {}
+        } else if (sel && pref === 'move' && mode !== 'move') {
+          try { localStorage.setItem('extClickMode', 'move'); } catch {}
+        }
+        syncModeButtons();
+      }, 700);
+      window.addEventListener('pagehide', () => { try { clearInterval(window.__extModeSyncPoll); } catch {} });
+    }
+  }
+
+  function consolidateLocPrevControls() {
+    const lp = document.querySelector(SELECTORS.locprev);
+    if (!lp) return;
+    if (lpProcessed.has(lp)) return; // build once per mount
+
+    const root = lp;
+    const controls = Array.from(root.querySelectorAll('.embed-controls__control'));
+    if (!controls.length) return;
+
+    const findContainerWithBtn = (label) => {
+      const b = root.querySelector(`.embed-controls__control button[aria-label="${label}"]`);
+      return b?.closest('.embed-controls__control');
+    };
+
+    const pano = root.querySelector(SELECTORS.locprevPanorama) || root;
+    let panels = pano.querySelector('.ext-lp-panels');
+    if (!panels) {
+      panels = document.createElement('div');
+      panels.className = 'ext-lp-panels';
+      pano.appendChild(panels);
+    } else if (panels.parentElement !== pano) {
+      try {
+        pano.appendChild(panels);
+      } catch {}
+    }
+
+    let p1 = panels.querySelector('.ext-lp-panel--p1');
+    if (!p1) {
+      p1 = document.createElement('div');
+      p1.className = 'ext-lp-panel ext-lp-panel--p1';
+      panels.appendChild(p1);
+    }
+
+    let p2 = panels.querySelector('.ext-lp-panel--p2');
+    if (!p2) {
+      p2 = document.createElement('div');
+      p2.className = 'ext-lp-panel ext-lp-panel--p2';
+      panels.appendChild(p2);
+    }
+
+    // Panel 1: Horizontal row layout
+    p1.innerHTML = '';
+
+    ['Open in maps', 'Copy link - hold Shift to copy without tags', 'Toggle fullscreen (F)'].forEach(lbl => {
+      const container = findContainerWithBtn(lbl);
+      if (container) {
+        p1.appendChild(container);
+      }
+    });
+
+    // Panel 2:  layout
+    p2.innerHTML = '';
+
+    [ 'Zoom in', 'Return to spawn (R)'].forEach(lbl => {
+      const container = findContainerWithBtn(lbl);
+      if (container) {
+        if (lbl === 'Return to spawn (R)') {
+          const jumpbtns = findContainerWithBtn('Jump forward 100 metres (Hotkey: 4)');
+          container.appendChild(jumpbtns);
+        };
+        p2.appendChild(container);
+      }
+    });
+    const compass = document.querySelector('.embed-controls__control:has(.compass)');
+    p2.appendChild(compass);
+
+    lpProcessed.add(lp);
+  }
+
   // MARK: ASV
   // ------------------------------ auto save -------------------------------
   const autoSaveManager = (() => {
     let timerId = null;
     let intervalSec = AUTO_SAVE_DEFAULT;
-    let metaEl = null;
 
     const readStoredInterval = () => {
       try {
@@ -1747,19 +2147,11 @@
       }
     };
 
-    const findSaveButton = () => {
-      if (metaEl?.isConnected) {
-        const btn = metaEl.querySelector(SAVE_BUTTON_SELECTOR);
-        if (btn) return btn;
-      }
-      return document.querySelector(SAVE_BUTTON_FULL_SELECTOR);
-    };
-
     const runAutoSave = () => {
       timerId = null;
       if (intervalSec <= 0) return;
 
-      const btn = findSaveButton();
+      const btn = document.querySelector(SELECTORS.saveBtn);
       if (!btn || isDisabled(btn)) {
         scheduleNext();
         return;
@@ -1793,7 +2185,7 @@
 
     const handleManualClick = (ev) => {
       if (ev.isTrusted === false || intervalSec <= 0) return;
-      const btn = ev.target?.closest(SAVE_BUTTON_FULL_SELECTOR);
+      const btn = ev.target?.closest(SELECTORS.saveBtn);
       if (!btn || isDisabled(btn)) return;
       scheduleNext();
     };
@@ -1803,12 +2195,6 @@
     document.addEventListener('click', handleManualClick, true);
 
     applyInterval(readStoredInterval());
-
-    return {
-      attachMeta(el) {
-        metaEl = el || null;
-      },
-    };
   })();
 
   // MARK: STP
@@ -1866,8 +2252,6 @@
       } catch {}
       syncDefaultLayoutControlsPosition();
     }
-
-    autoSaveManager.attachMeta(el);
 
     if (!window.__extMetaClickListenerBound) {
       window.__extMetaClickListenerBound = true;
@@ -2131,427 +2515,6 @@
   
   const setupModal = (el) => { el.classList.add('ext-float', 'ext-float--modal'); };
 
-  const proxiedControls = new WeakSet();
-  const lpProcessed = new WeakSet();
-  const ensureControlsSvOpacitySlider = (() => {
-    const KEY = 'svOpacity';
-    const STEP = 0.05;
-    let wrapEl = null;
-    let sliderEl = null;
-    let valueEl = null;
-    let wired = false;
-
-    const clampValue = (value) => {
-      const num = Number(value);
-      if (!Number.isFinite(num)) return 1;
-      const clamped = Math.min(1, Math.max(0, num));
-      return Number((Math.round(clamped / STEP) * STEP).toFixed(2));
-    };
-
-    const setDisplayValue = (val) => {
-      if (!sliderEl) return;
-      const next = clampValue(typeof val === 'number' ? val : readJSON(KEY, 1));
-      const str = String(next);
-      if (sliderEl.value !== str) sliderEl.value = str;
-      if (valueEl) valueEl.textContent = str;
-    };
-
-    const handleStorageEvent = (event) => {
-      if (!event || event.key !== KEY) return;
-      if (event.newValue == null) {
-        setDisplayValue(1);
-        return;
-      }
-      try {
-        setDisplayValue(JSON.parse(event.newValue));
-      } catch {
-        setDisplayValue();
-      }
-    };
-
-    const handleSettingEvent = (event) => {
-      if (!event?.detail || event.detail.key !== KEY) return;
-      setDisplayValue(event.detail.value);
-    };
-
-    const ensureListeners = () => {
-      if (wired) return;
-      wired = true;
-      window.addEventListener('storage', handleStorageEvent);
-      window.addEventListener('ext:setting', handleSettingEvent);
-    };
-
-    return (panel) => {
-      if (!panel) return;
-      if (!wrapEl || !wrapEl.isConnected) {
-        wrapEl = document.createElement('div');
-        wrapEl.className = 'embed-controls__control ext-sv-opacity-control';
-        sliderEl = document.createElement('input');
-        sliderEl.type = 'range'; sliderEl.min = '0'; sliderEl.max = '1'; sliderEl.step = String(STEP);
-        sliderEl.className = 'ext-sv-opacity-slider';
-        //sliderEl.addEventListener('pointerdown', (e) => e.stopPropagation(), true);
-        //sliderEl.addEventListener('click', (e) => e.stopPropagation(), true);
-        sliderEl.addEventListener('input', () => {
-          const normalized = clampValue(parseFloat(sliderEl.value));
-          const str = String(normalized);
-          if (sliderEl.value !== str) sliderEl.value = str;
-          if (valueEl) valueEl.textContent = str;
-          writeJSON(KEY, normalized);
-        }, true);
-        wrapEl.appendChild(sliderEl);
-      }
-      if (panel.firstChild !== wrapEl) {
-        panel.insertBefore(wrapEl, panel.firstChild || null);
-      }
-      ensureListeners();
-      setDisplayValue();
-    };
-  })();
-
-  function consolidateControls() {
-    let panel = document.querySelector(SELECTORS.controls);
-    if (!panel) {
-      panel = document.createElement('div');
-      panel.className = 'ext-controls-panel ext-float';
-      document.body.appendChild(panel);
-    }
-    ensureControlsSvOpacitySlider(panel);
-
-    const applyBadgeStructure = (clonedContainer) => {
-      const storeBtn = clonedContainer.querySelector('button[aria-label="Store map position"]');
-      const returnBtn = clonedContainer.querySelector('button[aria-label="Return to stored map position"]');
-
-      if (storeBtn && returnBtn) {
-        if (storeBtn.parentElement.classList.contains('ext-store-pos-wrapper')) {
-          return;
-        }
-        const wrapper = document.createElement('div');
-        wrapper.className = 'ext-store-pos-wrapper';
-        storeBtn.parentElement.insertBefore(wrapper, storeBtn);
-        wrapper.appendChild(storeBtn);
-        wrapper.appendChild(returnBtn);
-        returnBtn.classList.add('ext-return-badge');
-      }
-    };
-
-    const buttonLabelsToProxy = [
-      "Store map position", "Return to stored map position",
-      "Zoom in",
-      "Adjust visibility of unselected markers",
-      "Draw a polygon selection",
-      "Draw a rectangle selection"
-    ];
-
-    const allControls = document.querySelectorAll('.embed-controls__control');
-
-    allControls.forEach(originalControl => {
-      if (originalControl.closest(SELECTORS.controls) || originalControl.closest(SELECTORS.locprev)) {
-        return;
-      }
-      
-      if (proxiedControls.has(originalControl)) {
-        return;
-      }
-
-      const button = originalControl.querySelector('button[aria-label]');
-      if (button && buttonLabelsToProxy.includes(button.getAttribute('aria-label'))) {
-        
-        const clonedControl = originalControl.cloneNode(true);
-        panel.appendChild(clonedControl);
-        originalControl.classList.add('ext-proxied-original');
-        proxiedControls.add(originalControl);
-
-        const syncProxy = () => {
-          clonedControl.innerHTML = originalControl.innerHTML;
-
-          const originalButtons = Array.from(originalControl.querySelectorAll('button, a'));
-          const clonedButtons = Array.from(clonedControl.querySelectorAll('button, a'));
-
-          clonedButtons.forEach((clonedButton, index) => {
-            const originalButton = originalButtons[index];
-            if (originalButton) {
-              clonedButton.addEventListener('click', e => {
-                e.preventDefault(); e.stopPropagation(); originalButton.click();
-              });
-            }
-          });
-          
-          applyBadgeStructure(clonedControl);
-        };
-        
-        syncProxy();
-
-        const observer = new MutationObserver(syncProxy);
-        observer.observe(originalControl, {
-          childList: true,
-          attributes: true,
-          subtree: true,
-          attributeFilter: ['class', 'data-state', 'disabled', 'src', 'aria-label', 'aria-pressed']
-        });
-      }
-    });
-
-    const selectionLabels = [
-      'Draw a polygon selection',
-      'Draw a rectangle selection'
-    ];
-    selectionLabels.forEach((label) => {
-      document.querySelectorAll(`.embed-controls__control button[aria-label="${label}"]`).forEach((btn) => {
-        if (btn.closest('.ext-controls-panel')) return;
-        if (btn.__extSelWired) return;
-        btn.__extSelWired = true;
-        btn.addEventListener('click', (e) => {
-          try {
-            const was = btn.getAttribute('aria-pressed') === 'true';
-            selectionLabels.forEach((lbl) => {
-              document.querySelectorAll(`button[aria-label="${lbl}"]`).forEach((b) => {
-                try { b.setAttribute('aria-pressed', 'false'); } catch {}
-              });
-            });
-            if (!was) {
-              document.querySelectorAll(`button[aria-label="${label}"]`).forEach((b) => {
-                try { b.setAttribute('aria-pressed', 'true'); } catch {}
-              });
-            }
-          } catch {}
-        }, true);
-      });
-    });
-
-    const PREF_KEY = 'extClickModePref';
-    function getMode() {
-      try { return localStorage.getItem('extClickMode') === 'move' ? 'move' : 'add'; } catch { return 'add'; }
-    }
-    function getPref() {
-      try { return localStorage.getItem(PREF_KEY) === 'move' ? 'move' : 'add'; } catch { return 'add'; }
-    }
-    function setPref(m) {
-      const v = m === 'move' ? 'move' : 'add';
-      try { localStorage.setItem(PREF_KEY, v); } catch {}
-    }
-    function hasSelection() {
-      try { return localStorage.getItem('extHasSelection') === '1'; } catch { return false; }
-    }
-    function setMode(m) {
-      const want = m === 'move' ? 'move' : 'add';
-      setPref(want);
-      const sel = hasSelection();
-      const effective = sel ? want : 'add';
-      try { localStorage.setItem('extClickMode', effective); } catch {}
-      syncModeButtons();
-    }
-
-    function ensureModeGroup() {
-      panel.querySelectorAll('[data-ext-mode-kind]')?.forEach(el => { try { el.remove(); } catch {} });
-      let group = panel.querySelector('.ext-mode-group');
-      if (!group) {
-        group = document.createElement('div');
-        group.className = 'embed-controls__control ext-mode-group';
-        const indicator = document.createElement('div');
-        indicator.className = 'ext-mode-indicator';
-        const btnWrap = document.createElement('div');
-        btnWrap.className = 'ext-mode-buttons';
-        const mkBtn = (kind, label) => {
-          const b = document.createElement('button');
-          b.type = 'button';
-          b.className = 'button';
-          b.dataset.kind = kind;
-          b.setAttribute('aria-label', `${label} locations on map click`);
-          b.textContent = label;
-          b.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); setMode(kind); }, true);
-          return b;
-        };
-        btnWrap.appendChild(mkBtn('add','Add'));
-        btnWrap.appendChild(mkBtn('move','Move'));
-        group.appendChild(indicator);
-        group.appendChild(btnWrap);
-        panel.appendChild(group);
-      }
-      return group;
-    }
-
-    function syncModeButtons() {
-      const cur = getMode();
-      const hasSel = (function(){ try { return localStorage.getItem('extHasSelection') === '1'; } catch { return false; } })();
-      const group = ensureModeGroup();
-      document.querySelectorAll('.ext-mode-buttons > .button').forEach(b => {
-        const kind = b.dataset.kind;
-        const on = (kind === cur);
-        b.setAttribute('aria-pressed', on ? 'true' : 'false');
-        b.dataset.state = on ? 'on' : 'off';
-        if (kind === 'move') { b.disabled = !hasSel; }
-      });
-      const ind = group.querySelector('.ext-mode-indicator');
-      const target = group.querySelector(`.ext-mode-buttons > .button[data-kind="${cur}"]`);
-      try { group.setAttribute('data-mode', cur); } catch {}
-      if (ind && target) {
-        const gr = group.getBoundingClientRect();
-        const br = target.getBoundingClientRect();
-        const left = Math.max(1, Math.round(br.left - gr.left) + 12);
-        const width = Math.round(br.width);
-        ind.style.left = left + 'px';
-        ind.style.width = width + 'px';
-        ind.style.borderColor = (cur === 'add') ? 'var(--ext-mode-indicator-add)' : 'var(--ext-mode-indicator-move)';
-      }
-      try { window.__extFSIndicatorSync && window.__extFSIndicatorSync(); } catch {}
-      document.querySelectorAll('.ext-mini-mode-toggle button').forEach(b => {
-        const kind = b.dataset.kind;
-        const on = (kind === cur);
-        b.setAttribute('aria-pressed', on ? 'true' : 'false');
-        b.dataset.state = on ? 'on' : 'off';
-        if (kind === 'move') { b.disabled = !hasSel; }
-      });
-    }
-
-    ensureModeGroup();
-    syncModeButtons();
-    
-    if (!window.__extModeHotkeysInstalled) {
-      window.__extModeHotkeysInstalled = true;
-      document.addEventListener('keydown', (e) => {
-        try {
-          if (e.defaultPrevented) return;
-          const t = e.target;
-          if (isTypingTarget(t)) return; // do not hijack when typing
-          if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
-          const k = e.key;
-          const c = e.code;
-          if (k === '1' || c === 'Digit1') {
-            e.preventDefault(); e.stopPropagation();
-            setMode('add');
-          } else if (k === '2' || c === 'Digit2') {
-            e.preventDefault(); e.stopPropagation();
-            setMode('move');
-          }
-        } catch {}
-      }, true);
-    }
-    if (!window.__extModeSyncBound) {
-      window.__extModeSyncBound = true;
-      window.addEventListener('storage', (ev) => {
-        if (!ev) return;
-        if (ev.key === 'extClickMode' || ev.key === 'extHasSelection') {
-          const sel = localStorage.getItem('extHasSelection') === '1';
-          const pref = getPref();
-          let mode = localStorage.getItem('extClickMode') === 'move' ? 'move' : 'add';
-          if (!sel && mode === 'move') {
-            try { localStorage.setItem('extClickMode', 'add'); } catch {}
-          }
-          if (sel && pref === 'move' && mode !== 'move') {
-            try { localStorage.setItem('extClickMode', 'move'); } catch {}
-          }
-          syncModeButtons();
-        }
-      });
-      window.addEventListener('ext:selection', (ev) => {
-        try {
-          const sel = !!(ev && ev.detail && ev.detail.hasSelection);
-          const pref = getPref();
-          let mode = localStorage.getItem('extClickMode') === 'move' ? 'move' : 'add';
-          if (!sel && mode === 'move') {
-            localStorage.setItem('extClickMode', 'add');
-          } else if (sel && pref === 'move' && mode !== 'move') {
-            localStorage.setItem('extClickMode', 'move');
-          }
-        } catch {}
-        syncModeButtons();
-      });
-      window.__extModeSyncPoll = setInterval(() => {
-        const sel = localStorage.getItem('extHasSelection') === '1';
-        const pref = getPref();
-        const mode = localStorage.getItem('extClickMode') === 'move' ? 'move' : 'add';
-        if (!sel && mode === 'move') {
-          try { localStorage.setItem('extClickMode', 'add'); } catch {}
-        } else if (sel && pref === 'move' && mode !== 'move') {
-          try { localStorage.setItem('extClickMode', 'move'); } catch {}
-        }
-        syncModeButtons();
-      }, 700);
-      window.addEventListener('pagehide', () => { try { clearInterval(window.__extModeSyncPoll); } catch {} });
-    }
-  }
-
-  function consolidateLocPrevControls() {
-    const lp = document.querySelector(SELECTORS.locprev);
-    if (!lp) return;
-    if (lpProcessed.has(lp)) return; // build once per mount
-
-    const root = lp;
-    const controls = Array.from(root.querySelectorAll('.embed-controls__control'));
-    if (!controls.length) return;
-
-    const findContainerWithBtn = (label) => {
-      const b = root.querySelector(`.embed-controls__control button[aria-label="${label}"]`);
-      return b?.closest('.embed-controls__control');
-    };
-
-    const pano = root.querySelector(SELECTORS.locprevPanorama) || root;
-    let panels = pano.querySelector('.ext-lp-panels');
-    if (!panels) {
-      panels = document.createElement('div');
-      panels.className = 'ext-lp-panels';
-      pano.appendChild(panels);
-    } else if (panels.parentElement !== pano) {
-      try {
-        pano.appendChild(panels);
-      } catch {}
-    }
-
-    let p1 = panels.querySelector('.ext-lp-panel--p1');
-    if (!p1) {
-      p1 = document.createElement('div');
-      p1.className = 'ext-lp-panel ext-lp-panel--p1';
-      panels.appendChild(p1);
-    }
-
-    let p2 = panels.querySelector('.ext-lp-panel--p2');
-    if (!p2) {
-      p2 = document.createElement('div');
-      p2.className = 'ext-lp-panel ext-lp-panel--p2';
-      panels.appendChild(p2);
-    }
-
-    // Panel 1: Horizontal row layout
-    p1.innerHTML = '';
-
-    ['Open in maps', 'Copy link - hold Shift to copy without tags', 'Toggle fullscreen (F)'].forEach(lbl => {
-      const container = findContainerWithBtn(lbl);
-      if (container) {
-        p1.appendChild(container);
-      }
-    });
-
-    // Panel 2: Grid layout
-    p2.innerHTML = '';
-
-    const btns = [{
-      label: 'Zoom in',
-      gridRow: '1',
-      gridColumn: '2'
-    },
-    {
-      label: 'Return to spawn (R)',
-      gridRow: '1',
-      gridColumn: '1'
-    }];
-
-    btns.forEach(config => {
-      const container = findContainerWithBtn(config.label);
-      if (container) {
-        if (config.label === 'Return to spawn (R)') {
-          const jumpbtns = findContainerWithBtn('Jump forward 100 metres (Hotkey: 4)');
-          container.appendChild(jumpbtns);
-        };
-        container.style.gridRow = config.gridRow;
-        container.style.gridColumn = config.gridColumn;
-        p2.appendChild(container);
-      }
-
-    });
-
-    lpProcessed.add(lp);
-  }
-
   const setupControls = (el) => {
     el.__extKey = DRAG_KEYS[SELECTORS.controls];
     el.classList.add('ext-float');
@@ -2621,7 +2584,6 @@
     consolidateControls();
     consolidateLocPrevControls();
     tagElementsForHiding();
-    ensureCompassEnhanced();
     ensureNativeTooltips();
     document.documentElement.classList.add('ext-floating-layout');
     document.documentElement.classList.toggle('ext-panel-layout-disabled', !isPanelLayoutEnabled());

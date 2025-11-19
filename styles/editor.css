@@ -1181,6 +1181,9 @@ section.map-embed > div:first-child > div > div {
 .ext-collapse-list-btn.is-collapsed svg {
   transform: rotate(-90deg);
 }
+
+/* ------------------ Location Preview ---------------- */
+
 .ext-float--locprev {
   position: fixed !important;
   overflow: hidden !important;
@@ -1238,10 +1241,22 @@ section.map-embed > div:first-child > div > div {
 }
 .ext-lp-panel--p2 {
   display: inline-grid;
-  grid-template-columns: repeat(2, auto); 
+  grid-template-areas:
+    "compass compass"
+    "move zoom"
+    "mode mode";
   order: 1;
   bottom: 0;
   left: 0;
+}
+.ext-lp-panel--p2 .embed-controls__control:has(.compass)  {
+  grid-area: compass;
+}
+.ext-lp-panel--p2 .embed-controls__control:has(button[aria-label="Reset zoom"]) {
+  grid-area: move;
+}
+.ext-lp-panel--p2 .embed-controls__control:has(button[aria-label="Return to spawn (R)"]) {
+  grid-area: zoom;
 }
 :is(:fullscreen, .location-preview__panorama:fullscreen, :-webkit-full-screen) .ext-lp-panel--p2 {
   left: auto;
@@ -1379,12 +1394,43 @@ section.map-embed > div:first-child > div > div {
   overflow-y: hidden;
   position: relative;
 }
+
+/* ------------------ Compass ---------------- */
+.compass-control {
+  position: relative;
+  justify-content: center;
+  display: flex;
+  align-items: center;
+  background: transparent !important;
+  margin: 12px 0px 24px 0px;
+}
+.compass-control__button {
+  background: none !important;
+}
+.compass {
+  transform: scale(1.5);
+  transform-origin: 0 0;
+  background: #000 !important;
+}
+.compass-control__link {
+  position: absolute;
+  transform: translateY(4px)translate(-50%,-50%)rotate(var(--heading))translate(16px,-38px) !important;
+  background: transparent !important;
+}
+
+/* ------------------ Controls Panel ---------------- */
 .ext-controls-panel {
   position: fixed !important;
   display: grid;
-  grid-template-columns: auto auto;
-  grid-template-rows: auto auto;
-  padding: 4px !important;
+  grid-template-columns: 1fr 1fr;
+  grid-auto-rows: minmax(0, auto);
+  grid-template-areas:
+    "sv sv"
+    "store adjust"
+    "zoom rectangle"
+    "mode mode";
+  gap: 0px;
+  padding: 8px 8px 16px 8px!important;
   z-index: var(--z-panel) !important;
 }
 .ext-controls-panel .embed-controls__control {
@@ -1398,10 +1444,24 @@ section.map-embed > div:first-child > div > div {
   display: flex;
   flex-direction: column;
 }
-.ext-controls-panel .embed-controls__control:has(button[aria-label="Store map position"]) { grid-area: 1 / 1; }
-.ext-controls-panel .embed-controls__control:has(button[aria-label="Adjust visibility of unselected markers"]) { grid-area: 1 / 2; }
-.ext-controls-panel .embed-controls__control:has(button[aria-label="Zoom in"]) { grid-area: 2 / 1; }
-.ext-controls-panel .embed-controls__control:has(button[aria-label="Draw a polygon selection"]) { grid-area: 2 / 2; }
+.ext-controls-panel .embed-controls__control:has(button[aria-label="Store map position"]) { grid-area: store; }
+.ext-controls-panel .embed-controls__control:has(button[aria-label="Adjust visibility of unselected markers"]) { grid-area: adjust; }
+.ext-controls-panel .embed-controls__control:has(button[aria-label="Zoom in"]) { grid-area: zoom; }
+.ext-controls-panel .embed-controls__control:has(button[aria-label="Draw a polygon selection"]) { grid-area: polygon; }
+.ext-controls-panel .embed-controls__control:has(button[aria-label="Draw a rectangle selection"]) { grid-area: rectangle; }
+.ext-controls-panel .ext-mode-group { grid-area: mode; justify-self: center; }
+.ext-sv-opacity-control {
+  grid-area: sv;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: stretch;
+}
+.ext-sv-opacity-slider {
+  accent-color: rgb(var(--ext-highlight));
+  margin: 6px 0px;
+  width: 80%;
+}
 .ext-store-pos-wrapper {
   position: relative;
   display: inline-flex;
@@ -1431,13 +1491,10 @@ section.map-embed > div:first-child > div > div {
   position: relative;
   width: 128px;
   padding: 4px;
-  margin: 8px;
+  margin: 0;
   background: var(--ext-el-bg);
   border-radius: calc(var(--ext-radius) - 2px);
   display: flex;
-  grid-column: 1 / -1;
-  grid-row: 3;
-  justify-self: center;
 }
 .ext-mode-group .ext-mode-indicator {
   position: absolute;
@@ -1721,22 +1778,6 @@ body.ext-proxy-menu-active [data-radix-popper-content-wrapper] {
 .map-control--button.white button[aria-pressed="true"] {
   background: var(--ext-red2) !important;
   box-shadow: inset 0 0 0 2px var(--ext-red);
-}
-.compass { background: var(--ext-el-bg) !important; }
-.ext-compass-wrap { background: none !important; }
-.ext-compass-enhanced {
-  position: absolute !important;
-  inset: 8px auto auto 8px !important;
-  z-index: var(--z-overlay) !important;
-}
-.ext-compass-wrap .compass-control {
-  transform: scale(1.5);
-  transform-origin: 0 0;
-}
-.ext-compass-wrap .compass-control__button,
-.ext-compass-wrap .compass-control__link {
-  background: transparent !important;
-  box-shadow: none !important;
 }
 .reset-btn {
   appearance: none;

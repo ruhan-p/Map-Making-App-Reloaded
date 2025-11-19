@@ -421,6 +421,26 @@
       fsFunctionality.appendChild(wrap);
     })();
 
+    (() => {
+      const key = 'svOpacityControlEnabled';
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.checked = !!readJSON(key, true);
+      input.addEventListener('click', stop, true);
+      input.addEventListener('change', () => writeJSON(key, !!input.checked), true);
+      fsFunctionality.appendChild(mkRow('Show opacity slider in map controls', input));
+    })();
+
+    (() => {
+      const key = 'fullscreenTagList';
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.checked = !!readJSON(key, true);
+      input.addEventListener('click', stop, true);
+      input.addEventListener('change', () => writeJSON(key, !!input.checked), true);
+      fsFunctionality.appendChild(mkRow('Add tags in fullscreen', input));
+    })();
+
     // --- Selecting new locations ---
     const fsSelecting = document.createElement('fieldset');
     fsSelecting.className = 'fieldset';
