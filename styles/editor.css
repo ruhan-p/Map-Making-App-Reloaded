@@ -1259,29 +1259,32 @@ section.map-embed > div:first-child > div > div {
   grid-area: zoom;
 }
 :is(:fullscreen, .location-preview__panorama:fullscreen, :-webkit-full-screen) .ext-lp-panel--p2 {
-  left: auto;
-  right: 16px;
-  bottom: 16px;
+  inset: auto 16px 16px auto;
 }
 
 :is(:fullscreen, .location-preview__panorama:fullscreen, :-webkit-full-screen) .ext-lp-panel--p3 {
-  top: 16px;
-  left: 16px;
-  right: auto;
-  bottom: auto;
+  padding: 16px;
+  inset: 16px auto auto 16px;
+  display: block !important;
+  width: 400px;
 }
-
-.location-preview__meta.ext-lp-panel--p3 .location-preview__date {
+.location-preview .ext-lp-panel--p3 {
   display: none !important;
 }
-.location-preview__meta:not(.ext-lp-panel--p3) .location-preview__date {
-  display: block !important;
+.ext-lp-panel--p3 .location-preview__date {
+  display: none !important;
 }
-.location-preview__meta.ext-lp-panel--p3 {
+.ext-lp-panel--p3 .location-preview__meta {
     grid-template-areas:
         "desc desc desc"
         "actions actions actions"
         "tags tags tags" !important;
+}
+.location-preview__meta {
+  grid-template-areas:
+    "desc desc desc"
+    "date actions actions"
+    "tags tags tags" !important;
 }
 
 .ext-mini-map {
@@ -1854,12 +1857,6 @@ body.ext-proxy-menu-active [data-radix-popper-content-wrapper] {
 .location-preview .tag-list[id^="downshift-"] > .tag.has-button::before { content: '+'; }
 .location-preview .tag-list[id^="downshift-"] > .tag.has-button:hover::before { opacity: 1; }
 
-.location-preview__meta {
-  grid-template-areas:
-    "desc desc desc"
-    "date actions actions"
-    "tags tags tags" !important;
-}
 .edit-chip-panel {
   display: flex;
   flex-direction: column;

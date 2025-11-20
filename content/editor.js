@@ -1919,8 +1919,9 @@
 
     function ensureModeGroup() {
       panel.querySelectorAll('[data-ext-mode-kind]')?.forEach(el => { try { el.remove(); } catch {} });
-      let group = panel.querySelector('.ext-mode-group');
+      let group = document.querySelector('.ext-mode-group');
       if (!group) {
+        console.log("Ext: Creating click mode controls");
         group = document.createElement('div');
         group.className = 'embed-controls__control ext-mode-group';
         const indicator = document.createElement('div');
@@ -1963,13 +1964,12 @@
       if (ind && target) {
         const gr = group.getBoundingClientRect();
         const br = target.getBoundingClientRect();
-        const left = Math.max(1, Math.round(br.left - gr.left) + 12);
+        const left = Math.max(1, Math.round(br.left - gr.left) + 16);
         const width = Math.round(br.width);
         ind.style.left = left + 'px';
         ind.style.width = width + 'px';
         ind.style.borderColor = (cur === 'add') ? 'var(--ext-mode-indicator-add)' : 'var(--ext-mode-indicator-move)';
       }
-      try { window.__extFSIndicatorSync && window.__extFSIndicatorSync(); } catch {}
       document.querySelectorAll('.ext-mini-mode-toggle button').forEach(b => {
         const kind = b.dataset.kind;
         const on = (kind === cur);
@@ -2020,31 +2020,6 @@
           syncModeButtons();
         }
       });
-      window.addEventListener('ext:selection', (ev) => {
-        try {
-          const sel = !!(ev && ev.detail && ev.detail.hasSelection);
-          const pref = getPref();
-          let mode = localStorage.getItem('extClickMode') === 'move' ? 'move' : 'add';
-          if (!sel && mode === 'move') {
-            localStorage.setItem('extClickMode', 'add');
-          } else if (sel && pref === 'move' && mode !== 'move') {
-            localStorage.setItem('extClickMode', 'move');
-          }
-        } catch {}
-        syncModeButtons();
-      });
-      window.__extModeSyncPoll = setInterval(() => {
-        const sel = localStorage.getItem('extHasSelection') === '1';
-        const pref = getPref();
-        const mode = localStorage.getItem('extClickMode') === 'move' ? 'move' : 'add';
-        if (!sel && mode === 'move') {
-          try { localStorage.setItem('extClickMode', 'add'); } catch {}
-        } else if (sel && pref === 'move' && mode !== 'move') {
-          try { localStorage.setItem('extClickMode', 'move'); } catch {}
-        }
-        syncModeButtons();
-      }, 700);
-      window.addEventListener('pagehide', () => { try { clearInterval(window.__extModeSyncPoll); } catch {} });
     }
   }
 
@@ -2074,21 +2049,13 @@
       } catch {}
     }
 
+    // Panel 1: Horizontal row layout
     let p1 = panels.querySelector('.ext-lp-panel--p1');
     if (!p1) {
       p1 = document.createElement('div');
       p1.className = 'ext-lp-panel ext-lp-panel--p1';
       panels.appendChild(p1);
     }
-
-    let p2 = panels.querySelector('.ext-lp-panel--p2');
-    if (!p2) {
-      p2 = document.createElement('div');
-      p2.className = 'ext-lp-panel ext-lp-panel--p2';
-      panels.appendChild(p2);
-    }
-
-    // Panel 1: Horizontal row layout
     p1.innerHTML = '';
 
     ['Open in maps', 'Copy link - hold Shift to copy without tags', 'Toggle fullscreen (F)'].forEach(lbl => {
@@ -2099,6 +2066,12 @@
     });
 
     // Panel 2:  layout
+    let p2 = panels.querySelector('.ext-lp-panel--p2');
+    if (!p2) {
+      p2 = document.createElement('div');
+      p2.className = 'ext-lp-panel ext-lp-panel--p2';
+      panels.appendChild(p2);
+    }
     p2.innerHTML = '';
 
     [ 'Zoom in', 'Return to spawn (R)'].forEach(lbl => {
@@ -2113,6 +2086,14 @@
     });
     const compass = document.querySelector('.embed-controls__control:has(.compass)');
     p2.appendChild(compass);
+
+    // Panel 3: LP Meta
+    let p3 = panels.querySelector('.ext-lp-panel--p3');
+    if (!p3) {
+      p3 = document.createElement('div');
+      p3.className = 'ext-lp-panel ext-lp-panel--p3';
+      panels.appendChild(p3);
+    }
 
     lpProcessed.add(lp);
   }
@@ -2580,6 +2561,7 @@
   // MARK: CRE
   // ------------------------------ core apply -------------------------------
   function applyAll() {
+    // TODO: Improve applyAll run performance
     if (!featureFlagsReady) return;
     consolidateControls();
     consolidateLocPrevControls();
