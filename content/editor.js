@@ -2065,7 +2065,7 @@
       }
     });
 
-    // Panel 2:  layout
+    // Panel 2:  Layout
     let p2 = panels.querySelector('.ext-lp-panel--p2');
     if (!p2) {
       p2 = document.createElement('div');
@@ -2078,8 +2078,12 @@
       const container = findContainerWithBtn(lbl);
       if (container) {
         if (lbl === 'Return to spawn (R)') {
-          const jumpbtns = findContainerWithBtn('Jump forward 100 metres (Hotkey: 4)');
-          container.appendChild(jumpbtns);
+          const jumpbtns = findContainerWithBtn('Jump forward 100 metres (Hotkey: 4)').querySelector('.map-control--button');
+          const rcontainer = container.querySelector('.map-control--button');
+          if (!jumpbtns) return;
+          Array.from(jumpbtns.children).forEach(btn => {
+            rcontainer.appendChild(btn);
+          });
         };
         p2.appendChild(container);
       }

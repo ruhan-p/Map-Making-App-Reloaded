@@ -12,15 +12,6 @@
     S.wrap = w; return w;
   }
 
-  function shouldShowFSMeta() {
-    try {
-      const raw = localStorage.getItem('fullscreenTagList');
-      return raw === null ? true : JSON.parse(raw);
-    } catch {
-      return true;
-    }
-  }
-
   function moveModeSelectorInto(host) {
     let modegroup = document.querySelector('.ext-mode-group');
     let panel = document.querySelector(host);
@@ -99,7 +90,7 @@
 
   function onFSChange() {
     const host = currentFsHost();
-    const body = document.querySelector('body');
+    const body = document.body;
     const lppanels = document.querySelector('.ext-lp-panels');
     const lppanel3 = document.querySelector('.ext-lp-panel--p3');
     const locprev = document.querySelector('.location-preview');
@@ -108,12 +99,22 @@
     const modegroup = document.querySelector('.ext-mode-group');
     const lpmeta = document.querySelector('.location-preview__meta');
 
+    const showtaglist = localStorage.getItem('fullscreenTagList');
+
     if (isLPFullscreen()) {
 
       moveMapIntoMini(host);
       moveElInto(lppanels, host);
       moveElInto(dragui, host);
-      moveElInto(lpmeta, lppanel3);
+
+      
+      if (showtaglist === null ? true : JSON.parse(showtaglist)) {
+        moveElInto(lpmeta, lppanel3);
+        lppanel3.classList.remove('disabled');
+      } else {
+        lppanel3.classList.add('disabled');
+      }
+      
       try { moveModeSelectorInto('.ext-lp-panel--p2'); } catch {}
       try { host.querySelectorAll('.ext-mini-mode-toggle').forEach(n => n.remove()); } catch {}
       try { if (shouldShowFSMeta()) moveLPMetaInto(host); } catch {}
@@ -122,7 +123,7 @@
       restoreMap();
       moveElInto(dragui, body);
       moveElInto(modegroup, controlpanel);
-      moveElInto(lpmeta, locprev);
+      if (showtaglist === null ? true : JSON.parse(showtaglist)) moveElInto(lpmeta, locprev);
       try {
         const host = currentFsHost() || document;
         host.querySelectorAll('.ext-mini-mode-toggle').forEach(n => n.remove());
