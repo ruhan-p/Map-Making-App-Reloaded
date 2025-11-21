@@ -1921,7 +1921,6 @@
       panel.querySelectorAll('[data-ext-mode-kind]')?.forEach(el => { try { el.remove(); } catch {} });
       let group = document.querySelector('.ext-mode-group');
       if (!group) {
-        console.log("Ext: Creating click mode controls");
         group = document.createElement('div');
         group.className = 'embed-controls__control ext-mode-group';
         const indicator = document.createElement('div');

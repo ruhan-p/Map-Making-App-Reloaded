@@ -1255,13 +1255,9 @@ section.map-embed > div:first-child > div > div {
 .ext-lp-panel--p2 .embed-controls__control:has(.compass)  {
   grid-area: compass;
 }
-.ext-lp-panel--p2 .embed-controls__control:has(button[aria-label="Reset zoom"]) {
-  grid-area: move;
-}
-.ext-lp-panel--p2 .embed-controls__control:has(button[aria-label="Return to spawn (R)"]) {
-  justify-self: center;
-  grid-area: zoom;
-}
+.ext-lp-panel--p2 .embed-controls__control:has(button[aria-label="Return to spawn (R)"]) { justify-self: center; grid-area: zoom; }
+.ext-lp-panel--p2 .embed-controls__control:has(button[aria-label="Reset zoom"]) { grid-area: move; }
+
 :is(:fullscreen, .location-preview__panorama:fullscreen, :-webkit-full-screen) .ext-lp-panel--p2 {
   inset: auto 20px 16px auto;
 }
@@ -1391,6 +1387,7 @@ section.map-embed > div:first-child > div > div {
   width: 56px;
   padding: 0 !important;
   margin: 4px 0px !important;
+  margin: 0 !important;
 }
 
 .select__input {
@@ -1444,9 +1441,10 @@ section.map-embed > div:first-child > div > div {
   align-items: center;
   justify-content: center;
 }
-.ext-controls-panel .map-control--button {
+.map-control--button {
   display: flex;
   flex-direction: column;
+  align-self: center;
 }
 .ext-controls-panel .embed-controls__control:has(button[aria-label="Store map position"]) { grid-area: store; }
 .ext-controls-panel .embed-controls__control:has(button[aria-label="Adjust visibility of unselected markers"]) { grid-area: adjust; }
