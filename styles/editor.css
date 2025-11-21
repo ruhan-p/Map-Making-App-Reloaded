@@ -1211,11 +1211,13 @@ section.map-embed > div:first-child > div > div {
   align-items: flex-start;
   z-index: var(--z-lppanels) !important;
   pointer-events: none;
+  --ext-lp-panel-scale: 1;
 }
 :is(:fullscreen, .location-preview__panorama:fullscreen, :-webkit-full-screen) .ext-lp-panels {
   position: static !important;
   inset: auto !important;
   pointer-events: none !important;
+  --ext-lp-panel-scale: 1 !important;
 }
 .ext-lp-panel {
   padding: 8px 12px;
@@ -1228,11 +1230,16 @@ section.map-embed > div:first-child > div > div {
   pointer-events: auto !important;
   z-index: var(--z-lppanels);
 }
+.ext-lp-panel--p1,
+.ext-lp-panel--p2 {
+  transform: scale(var(--ext-lp-panel-scale, 1));
+}
 .ext-lp-panel--p1 {
   display: flex;
   order: 2;
   top: 0;
   right: 0;
+  transform-origin: top right;
 }
 :is(:fullscreen, .location-preview__panorama:fullscreen, :-webkit-full-screen) .ext-lp-panel--p1 {
   left: auto;
@@ -1248,6 +1255,7 @@ section.map-embed > div:first-child > div > div {
     "mode mode";
   order: 1;
   bottom: 0;
+  transform-origin: bottom left;
 }
 .ext-lp-panel--p2 .embed-controls__control {
   margin: 0 !important;

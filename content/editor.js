@@ -12,6 +12,16 @@
   });
   const AUTO_SAVE_KEY = 'autoSave';
   const AUTO_SAVE_DEFAULT = -1;
+  const LP_PANEL_SCALE_REFERENCE = Math.max(
+    1,
+    typeof LOCPREV_MIN_W === 'number' && Number.isFinite(LOCPREV_MIN_W) ? LOCPREV_MIN_W : 680
+  );
+  const LP_PANEL_SCALE_REFERENCE_H = Math.max(
+    1,
+    typeof LOCPREV_BASE_H === 'number' && Number.isFinite(LOCPREV_BASE_H) ? LOCPREV_BASE_H : 586
+  );
+  const LP_PANEL_SCALE_MIN = 0.6;
+  const LP_PANEL_SCALE_MAX = 1;
 
   let featureFlags = { ...DEFAULT_FEATURE_FLAGS };
   let featureFlagsReady = false;
@@ -524,14 +534,6 @@
   function isLPFullscreen() {
     const fe = document.fullscreenElement;
     return !!(fe && (fe.matches?.(SELECTORS.locprevPanorama) || fe.closest?.(SELECTORS.locprevPanorama)));
-  }
-
-  function getLPPanelElements() {
-    try {
-      return Array.from(document.querySelectorAll(`${SELECTORS.lpPanelP1}, ${SELECTORS.lpPanelP2}`));
-    } catch {
-      return [];
-    }
   }
 
   function getDraggables() {
@@ -1599,6 +1601,40 @@
     reveal.addEventListener('transitionend', onRevealTransitionEnd);
   }
 
+  function clampLpPanelScale(value) {
+    const num = Number(value);
+    if (!Number.isFinite(num)) return 1;
+    return Math.min(LP_PANEL_SCALE_MAX, Math.max(LP_PANEL_SCALE_MIN, num));
+  }
+
+  function syncLpPanelScale(lpEl) {
+    if (!lpEl) return;
+    const pano = lpEl.querySelector(SELECTORS.locprevPanorama) || lpEl;
+    if (!pano) return;
+    const panels = pano.querySelector('.ext-lp-panels');
+    if (!panels) return;
+    let scale = 1;
+    if (!isLPFullscreen()) {
+      const rect = pano.getBoundingClientRect();
+      let width = Math.max(0, rect.width || 0);
+      let height = Math.max(0, rect.height || 0);
+      if (width === 0 || height === 0) {
+        const fallback = lpEl.getBoundingClientRect();
+        if (width === 0) width = Math.max(0, fallback.width || 0);
+        if (height === 0) height = Math.max(0, fallback.height || 0);
+      }
+      const widthRatio = width > 0 ? width / LP_PANEL_SCALE_REFERENCE : 1;
+      const heightRatio = height > 0 ? height / LP_PANEL_SCALE_REFERENCE_H : 1;
+      const ratio = Math.min(widthRatio, heightRatio);
+      scale = clampLpPanelScale(ratio);
+    }
+    panels.style.setProperty('--ext-lp-panel-scale', `${scale}`);
+  }
+
+  function syncAllLpPanelScales() {
+    document.querySelectorAll(SELECTORS.locprev).forEach(syncLpPanelScale);
+  }
+
   function wireLocPrevObservers(el) {
     const pano = el.querySelector(SELECTORS.locprevPanorama);
 
@@ -1629,6 +1665,7 @@
       if (el.__extPanoActive && !document.fullscreenElement) return;
       void ps.fit(el);
     });
+    const scheduleScaleSync = rafThrottle(() => syncLpPanelScale(el));
 
     if (!el.__extFitRO) {
       let lastWidth = -1;
@@ -1643,6 +1680,7 @@
         lastHeight = height;
 
         scheduleReflow();
+        scheduleScaleSync();
       });
       ro.observe(el);
       el.__extFitRO = ro;
@@ -1656,6 +1694,7 @@
           }
 
           scheduleReflow();
+          scheduleScaleSync();
           return;
         }
       });
@@ -1675,6 +1714,8 @@
       }
       el.__extFitMO = mo;
     }
+
+    scheduleScaleSync();
   }
 
     
@@ -2098,6 +2139,7 @@
       panels.appendChild(p3);
     }
 
+    syncLpPanelScale(lp);
     lpProcessed.add(lp);
   }
 
@@ -2667,11 +2709,13 @@
     }
     if (__extPersistTO) clearTimeout(__extPersistTO);
     __extPersistTO = setTimeout(() => { void persistAllVisiblePositions(); }, 400);
+    syncAllLpPanelScales();
   }
 
   window.addEventListener('resize', onResize, { passive: true });
   window.addEventListener('pagehide', () => { void persistAllVisiblePositions(); });
   window.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') { void persistAllVisiblePositions(); } });
+  document.addEventListener('fullscreenchange', () => { syncAllLpPanelScales(); }, true);
 })();
 
 // MARK: AZL
